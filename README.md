@@ -33,7 +33,7 @@ We try to keep R2Base simple and focused. R2Base is not responsible for:
 
 ## What is R2Base
 
-R2Base focuses on providing a robust backbone for ranking and reading. It provides:
+R2Base focuses on providing a robust backbone for ranking and reading.
 - It provides a clear config query that can be used to reproduce a strategy of using ranking & reading for any applications.
 - It is optimized for scale and can be scaled up by adding more nodes. 
 - It is optimized for speed where unnecessary delays are all taken care of.
