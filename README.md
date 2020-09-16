@@ -14,8 +14,8 @@ The indexer is a RESTful API and distributed workers that convert unstructured d
 ### Index
 R2Base supports a range of different index that enables fast ranking and supports both text and visual data.
 - Meta and ID: ID reading, structured filters
-- Sparse Index: BM25 or SPARTA
-- Dense Index: Brutal Force or LSH
+- Sparse Index: BM25, Prefix, SPARTA, ...
+- Dense Index: Brutal Force, FASSIS, ...
 
 ### Readers
 R2Base uses Transformers as its reader. It can read both text and visual data.   
