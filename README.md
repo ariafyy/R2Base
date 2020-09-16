@@ -13,14 +13,15 @@ The indexer is a RESTful API and distributed workers that convert unstructured d
 
 ### Index
 R2Base supports a range of different index that enables fast ranking and supports both text and visual data.
-- Sparse Index: BM25 or SPARTA 
+- Meta and ID: ID reading, structured filters
+- Sparse Index: BM25 or SPARTA
 - Dense Index: Brutal Force or LSH
 
 ### Readers
 R2Base uses Transformers as its reader. It can read both text and visual data.   
 
 ### Query Engine
-The query engine is a server that enables clients to query R2Base via simple RESTful API. The query usually combines index ranking and reading.
+The query engine is a server that enables clients to query R2Base via simple RESTful API. The query usually combines index ranking and reading using different strategies.
 
 ## What is not R2Base
 We try to keep R2Base simple and focused. R2Base is not responsible for:
