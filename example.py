@@ -11,7 +11,7 @@ if __name__ == "__main__":
                   'index': 'inverted',
                   'model': 'bm25'},
         'vector': {'type': 'vector',
-                   'dim': '4'},
+                   'num_dim': '4'},
         'text2': {'type': 'text',
                   'lang': 'en',
                   'index': 'vector',
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     doc2 = {
         'key': '234',
         'text1': 'hello i am from New York',
-        'vector': np.array([0, 1, 2, 3]),
+        'vector': np.array([0, 1, 3, 1]),
         'text2': 'how are you doing?'
     }
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     pipeline.create_index(index, mapping)
     doc_id = pipeline.add_doc(index, [doc1, doc2])
     print(pipeline.read_doc(index, doc_id))
-    print(pipeline.rank(index, {'query': {'key': '234'}}))
+    print(pipeline.rank(index, {'query': {'key': '234', 'vector': np.array([1, 1, 2, 3])}}))
 
     index = 'test2'
     pipeline.create_index(index, mapping)

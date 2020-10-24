@@ -44,7 +44,7 @@ class CompoundIndex(object):
                 if mapping['type'] == FT.keyword:
                     _index[field] = KeyValueRankIndex(sub_id)
                 elif mapping['type'] == FT.vector:
-                    _index[field] = VectorIndex(sub_id)
+                    _index[field] = VectorIndex(sub_id, mapping['num_dim'])
                 else:
                     _index[field] = None
             else:
@@ -76,6 +76,9 @@ class CompoundIndex(object):
                     continue
 
                 if type(_index[field]) is KeyValueRankIndex:
+                    _index[field].add(value, d[FT.id])
+
+                elif type(_index[field]) is VectorIndex:
                     _index[field].add(value, d[FT.id])
 
         self._dump_index(index_id, _index)
@@ -114,15 +117,14 @@ class CompoundIndex(object):
                 continue
 
             sub_index = _index[field]
-
             if type(sub_index) is KeyValueRankIndex:
                 temp = sub_index.get(value)
                 filters = filters.union(temp)
 
             if type(sub_index) is VectorIndex:
-                temp = sub_index.rank(value['vector'], top_k)
+                temp = sub_index.rank(value, top_k)
                 for score, _id in temp:
-                    ranks[_id] += score
+                    ranks[_id] = score + ranks.get(_id, 0.0)
 
         if len(filters) > 0:
             if len(ranks) > 0:
