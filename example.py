@@ -3,9 +3,8 @@ import numpy as np
 
 if __name__ == "__main__":
     pipeline = Pipeline()
-    index = 'test'
 
-    pipeline.create_index(index, {
+    mapping = {
         'key': {'type': 'keyword'},
         'text1': {'type': 'text',
                   'lang': 'en',
@@ -17,7 +16,7 @@ if __name__ == "__main__":
                   'lang': 'en',
                   'index': 'vector',
                   'model': 'bert-base-uncased'}
-    })
+    }
     doc1 = {
         'key': '123',
         'text1': 'hello i am from New York',
@@ -30,6 +29,15 @@ if __name__ == "__main__":
         'vector': np.array([0, 1, 2, 3]),
         'text2': 'how are you doing?'
     }
+
+    index = 'test'
+    pipeline.create_index(index, mapping)
     doc_id = pipeline.add_doc(index, [doc1, doc2])
     print(pipeline.read_doc(index, doc_id))
     print(pipeline.rank(index, {'query': {'key': '234'}}))
+
+    index = 'test2'
+    pipeline.create_index(index, mapping)
+    doc_id = pipeline.add_doc(index, [doc1, doc2])
+    print(pipeline.read_doc(index, doc_id))
+    print(pipeline.rank(index, {'query': {'key': '123'}}))
