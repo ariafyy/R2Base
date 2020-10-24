@@ -1,8 +1,10 @@
-from r2base.engine.pipeline import Pipeline
+from r2base.engine.indexer import Indexer
+from r2base.engine.ranker import Ranker
 import numpy as np
 
 if __name__ == "__main__":
-    pipeline = Pipeline()
+    indexer = Indexer()
+    ranker = Ranker()
 
     mapping = {
         'key': {'type': 'keyword'},
@@ -31,13 +33,13 @@ if __name__ == "__main__":
     }
 
     index = 'test'
-    pipeline.create_index(index, mapping)
-    doc_id = pipeline.add_doc(index, [doc1, doc2])
-    print(pipeline.read_doc(index, doc_id))
-    print(pipeline.rank(index, {'query': {'key': '234', 'vector': np.array([1, 1, 2, 3])}}))
+    indexer.create_index(index, mapping)
+    doc_id = indexer.add_doc(index, [doc1, doc2])
+    print(ranker.read_doc(index, doc_id))
+    print(ranker.query(index, {'query': {'key': '234', 'vector': np.array([1, 1, 2, 3])}}))
 
     index = 'test2'
-    pipeline.create_index(index, mapping)
-    doc_id = pipeline.add_doc(index, [doc1, doc2])
-    print(pipeline.read_doc(index, doc_id))
-    print(pipeline.rank(index, {'query': {'key': '123'}}))
+    indexer.create_index(index, mapping)
+    doc_id = indexer.add_doc(index, [doc1, doc2])
+    print(ranker.read_doc(index, doc_id))
+    print(ranker.query(index, {'query': {'key': '123'}}))
