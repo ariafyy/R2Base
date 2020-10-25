@@ -10,7 +10,8 @@ if __name__ == "__main__":
         'key': {'type': 'keyword'},
         'text1': {'type': 'text',
                   'lang': 'en',
-                  'index': 'bm25'
+                  'index': 'bm25',
+                  'processor': 'tokenize,stem'
                   },
         'vector': {'type': 'vector',
                    'num_dim': 4},
@@ -18,11 +19,13 @@ if __name__ == "__main__":
                   'lang': 'en',
                   'index': 'vector',
                   "num_dim": 786,
+                  'processor': 'encode',
                   'model': 'bert-base-uncased'
                   },
         'text3': {'type': 'text',
                   'lang': 'en',
                   'index': 'custom_inverted',
+                  'processo': 'encode',
                   'model': 'bert-ti-log'
                   }
     }

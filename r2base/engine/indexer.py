@@ -4,6 +4,7 @@ from r2base.index.inverted import InvertedIndex, BM25Index
 from r2base.engine.bases import EngineBase
 from r2base.engine.bases import FieldType as FT
 from r2base.index import IndexType as IT
+from r2base.processors.pipeline import Pipeline
 import uuid
 import logging
 
@@ -68,19 +69,25 @@ class Indexer(EngineBase):
                     self.logger.warning("{} is not defined in mapping".format(field))
                     continue
 
-                if type(_index[field]) is KeyValueRankIndex:
+                if type(mappings[field]['type']) == FT.keyword:
                     _index[field].add(value, d[FT.id])
 
-                elif type(_index[field]) is VectorIndex:
+                elif type(mappings[field]['type']) == FT.vector:
                     _index[field].add(value, d[FT.id])
 
-                elif type(_index[field]) is InvertedIndex:
-                    scores = [(1, 2), (2, 3)]
-                    _index[field].add(scores, d[FT.id])
+                elif type(mappings[field]['type']) == FT.text:
+                    pipe = Pipeline(mappings[field]['processor'])
+                    anno_value = pipe.run(value)
 
-                elif type(_index[field]) is BM25Index:
-                    scores = [(1, 2), (2, 3)]
-                    _index[field].add(scores, d[FT.id])
+                    # run encoders or NLP processors
+                    if type(_index[field]) is VectorIndex:
+                        _index[field].add(anno_value, d[FT.id])
+
+                    elif type(_index[field]) is InvertedIndex:
+                        _index[field].add(anno_value, d[FT.id])
+
+                    elif type(_index[field]) is BM25Index:
+                        _index[field].add(anno_value, d[FT.id])
 
         self._dump_index(index_id, _index)
         return ids
