@@ -1,6 +1,9 @@
 from r2base.index.keyvalue import KeyValueIndex, KeyValueRankIndex
 from r2base.index.vector import VectorIndex
-from r2base.engine.bases import EngineBase, FT
+from r2base.index.inverted import InvertedIndex, BM25Index
+from r2base.engine.bases import EngineBase
+from r2base.engine.bases import FieldType as FT
+from r2base.index import IndexType as IT
 import uuid
 import logging
 
@@ -22,10 +25,19 @@ class Indexer(EngineBase):
             if field != FT.id:
                 if mapping['type'] == FT.keyword:
                     _index[field] = KeyValueRankIndex(sub_id)
+
                 elif mapping['type'] == FT.vector:
                     _index[field] = VectorIndex(sub_id, mapping['num_dim'])
+
                 elif mapping['type'] == FT.text:
-                    pass
+                    if mapping['index'] == IT.CUS_INVERTED:
+                        _index[field] = InvertedIndex(sub_id)
+
+                    elif mapping['index'] == IT.BM25:
+                        _index[field] = BM25Index(sub_id)
+
+                    elif mapping.index == IT.VECTOR:
+                        _index[field] = VectorIndex(sub_id, mapping.num_dim)
                 else:
                     _index[field] = None
             else:
@@ -61,6 +73,14 @@ class Indexer(EngineBase):
 
                 elif type(_index[field]) is VectorIndex:
                     _index[field].add(value, d[FT.id])
+
+                elif type(_index[field]) is InvertedIndex:
+                    scores = [(1, 2), (2, 3)]
+                    _index[field].add(scores, d[FT.id])
+
+                elif type(_index[field]) is BM25Index:
+                    scores = [(1, 2), (2, 3)]
+                    _index[field].add(scores, d[FT.id])
 
         self._dump_index(index_id, _index)
         return ids

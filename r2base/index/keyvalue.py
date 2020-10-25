@@ -1,7 +1,12 @@
 from collections import defaultdict
 import numpy as np
+from r2base.index import BaseIndex
+from r2base.index import IndexType as IT
 
-class KeyValueIndex(object):
+
+class KeyValueIndex(BaseIndex):
+    type = IT.KEYWORD
+
     def __init__(self, index_id):
         self.index_id = index_id
         self._index = dict()
@@ -20,7 +25,10 @@ class KeyValueIndex(object):
         random_keys = np.random.randint(0, len(self._index), size)
         return [self._index[self.keys()[key_idx]] for key_idx in random_keys]
 
-class KeyValueRankIndex(object):
+
+class KeyValueRankIndex(BaseIndex):
+    type = IT.KEYWORD
+
     def __init__(self, index_id):
         self._index = defaultdict(set)
         self.index_id = index_id

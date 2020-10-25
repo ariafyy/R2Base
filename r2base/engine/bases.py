@@ -2,7 +2,7 @@ import os
 import pickle as pkl
 
 
-class FT(object):
+class FieldType(object):
     id = '_id'
     keyword = 'keyword'
     vector = "vector"

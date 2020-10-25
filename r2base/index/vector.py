@@ -1,7 +1,11 @@
 import numpy as np
+from r2base.index import BaseIndex
+from r2base.index import IndexType as IT
 
 
-class VectorIndex(object):
+class VectorIndex(BaseIndex):
+    type = IT.VECTOR
+
     def __init__(self, index_id, num_dim):
         self.index_id = index_id
         self.num_dim = num_dim
@@ -19,6 +23,8 @@ class VectorIndex(object):
     def add(self, vector, key):
         if len(vector.shape) == 1:
             vector = vector.reshape(1, -1)
+
+        assert vector.shape[1] == self.num_dim
 
         if self._index is None:
             self._index = vector
