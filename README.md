@@ -1,4 +1,4 @@
-# R2Base: search engine for unstructured data
+# R2Base: AI search engine
 
 ## What is R2Base?
 R2Base a document store with semantic search and machine reading

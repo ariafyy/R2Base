@@ -1,0 +1,4 @@
+IS_DEBUG: false
+INDEX_DIR: "_index"
+MODEL_DIR: "resources"
+API_PREFIX: "/r2base"
