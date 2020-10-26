@@ -2,13 +2,6 @@ import os
 import pickle as pkl
 
 
-class FieldType(object):
-    id = '_id'
-    keyword = 'keyword'
-    vector = "vector"
-    text = "text"
-
-
 class EngineBase(object):
     def _sub_index(self, index_id, field):
         return '{}-{}'.format(index_id, field)

@@ -1,6 +1,6 @@
 from r2base.index.keyvalue import KeyValueIndex, KeyValueRankIndex
 from r2base.index.vector import VectorIndex
-from r2base.engine.bases import EngineBase, FT
+from r2base.engine.bases import EngineBase
 import logging
 
 

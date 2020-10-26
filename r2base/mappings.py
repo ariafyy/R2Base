@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 import json
-from r2base.engine.bases import FT
+from r2base import FieldType as FT
 
 
 def from_string(json_str):

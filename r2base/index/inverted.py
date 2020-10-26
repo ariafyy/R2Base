@@ -1,5 +1,5 @@
 from r2base.index import BaseIndex
-from r2base.index import IndexType as IT
+from r2base import IndexType as IT
 from collections import defaultdict
 from typing import List, Tuple, Union
 import numpy as np

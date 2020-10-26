@@ -1,6 +1,6 @@
 import numpy as np
 from r2base.index import BaseIndex
-from r2base.index import IndexType as IT
+from r2base import IndexType as IT
 
 
 class VectorIndex(BaseIndex):
