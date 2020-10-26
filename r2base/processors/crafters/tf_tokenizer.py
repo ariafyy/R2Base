@@ -1,9 +1,6 @@
 import stanza
 from r2base.processors import ProcessorBase
-
-
-class NlpTokenizer(ProcessorBase):
-    pass
+import os
 
 
 class TransformerTokenizer(ProcessorBase):

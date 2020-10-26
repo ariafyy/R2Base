@@ -1,4 +1,4 @@
-from r2base.processors.crafters.tokenizer import NlpTokenizer
+from r2base.processors.crafters.nlp_tokenizer import NlpTokenizer
 
 processor_map = {
     'tokenize': NlpTokenizer(),
@@ -11,6 +11,3 @@ processor_map = {
 }
 
 
-class ProcessorBase(object):
-    def run(self, data):
-        raise NotImplementedError
