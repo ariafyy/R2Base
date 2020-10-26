@@ -89,7 +89,12 @@ class Ranker(EngineBase):
                     pass
 
                 elif sub_index.type is IT.VECTOR:
-                    pass
+                    pipe = Pipeline(mappings[field]['q_processor'])
+                    kwargs = {'model_id': mappings[field]['model_id']}
+                    anno_value = pipe.run(value, **kwargs)
+                    temp = sub_index.rank(anno_value, top_k)
+                    for score, _id in temp:
+                        ranks[_id] = score + ranks.get(_id, 0.0)
 
         docs = self._fuse_results(_index, ranks, filters, top_k)
 

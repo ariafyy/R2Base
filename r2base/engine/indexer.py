@@ -31,13 +31,14 @@ class Indexer(EngineBase):
                     _index[field] = VectorIndex(sub_id, mapping['num_dim'])
 
                 elif mapping['type'] == FT.text and 'index' in mapping:
+                    if 'q_processor' not in mapping:
+                        mapping['q_processor'] = mapping['processor']
+
                     if mapping['index'] == IT.CUS_INVERTED:
                         _index[field] = InvertedIndex(sub_id)
 
                     elif mapping['index'] == IT.BM25:
                         _index[field] = BM25Index(sub_id)
-                        if 'q_processor' not in mapping:
-                            mapping['q_processor'] = mapping['processor']
 
                     elif mapping['index'] == IT.VECTOR:
                         _index[field] = VectorIndex(sub_id, mapping['num_dim'])
@@ -79,17 +80,24 @@ class Indexer(EngineBase):
 
                 elif mappings[field]['type'] == FT.text and 'index' in mappings[field]:
                     pipe = Pipeline(mappings[field]['processor'])
-                    kwargs = {'lang': mappings[field]['lang']}
-                    anno_value = pipe.run(value, **kwargs)
 
                     # run encoders or NLP processors
                     if type(_index[field]) is VectorIndex:
+                        kwargs = {'model_id': mappings[field]['model_id']}
+                        anno_value = pipe.run(value, **kwargs)
+
                         _index[field].add(anno_value, d[FT.id])
 
                     elif type(_index[field]) is InvertedIndex:
+                        kwargs = {'model_id': mappings[field]['model_id']}
+                        anno_value = pipe.run(value, **kwargs)
+
                         _index[field].add(anno_value, d[FT.id])
 
                     elif type(_index[field]) is BM25Index:
+                        kwargs = {'lang': mappings[field]['lang']}
+                        anno_value = pipe.run(value, **kwargs)
+
                         _index[field].add(anno_value, d[FT.id])
 
         self._dump_index(index_id, _index)

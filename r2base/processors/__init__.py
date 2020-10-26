@@ -1,4 +1,5 @@
 from r2base.processors.crafters.nlp_tokenizer import NlpTokenizer
+from r2base.processors.encoders.pytorch_encoders import TransformerEncoders
 from r2base.processors.crafters.basics import LowerCase, NoNumber
 
 
@@ -8,8 +9,8 @@ processor_map = {
     'lower': LowerCase(),
     'remove_num': NoNumber(),
     'tokenize_stem': None,
-    'onnx_encoder': None,
-    'py_encoder': None
+    'onnx_encode': None,
+    'py_encode': TransformerEncoders()
 }
 
 

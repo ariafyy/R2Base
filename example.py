@@ -18,16 +18,16 @@ if __name__ == "__main__":
         'text2': {'type': 'text',
                   'lang': 'en',
                   'index': 'vector',
-                  "num_dim": 786,
-                  'processor': 'encode',
-                  'model': 'bert-base-uncased'
+                  "num_dim": 768,
+                  'processor': 'py_encode',
+                  'model_id': 'bert-base-nli-stsb-mean-tokens'
                   },
         'text3': {'type': 'text',
                   'lang': 'en',
-                  'index': 'custom_inverted',
-                  'processor': 'encode',
-                  'q_processor': 'bert-bert-uncased',
-                  'model': 'bert-sparta'
+                  #'index': 'custom_inverted',
+                  #'processor': 'encode',
+                  #'q_processor': 'bert-bert-uncased',
+                  #'model': 'bert-sparta'
                   }
     }
     doc1 = {
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     indexer.create_index(index, mapping)
     doc_id = indexer.add_doc(index, [doc1, doc2])
     print(ranker.read_doc(index, doc_id))
-    print(ranker.query(index, {'query': {'text1': 'china',
-                                         'key': "123"}}))
+    print(ranker.query(index, {'query': {'text2': 'bye bye',
+                                         'text1': "i"}}))
 
     #'vector': np.array([1, 1, 2, 3])
