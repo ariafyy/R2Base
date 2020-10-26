@@ -1,6 +1,6 @@
 from r2base.index import BaseIndex
 from r2base import IndexType as IT
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import List, Tuple, Union
 import numpy as np
 
@@ -36,13 +36,14 @@ class BM25Index(BaseIndex):
         self._inverted_index = defaultdict(dict)
         self._doc_ids = set()
 
-    def add(self, scores: List[Tuple], doc_id: str):
+    def add(self, tokens: List[str], doc_id: str):
+        scores = Counter(tokens).most_common()
         self._doc_ids.add(doc_id)
         for t, s in scores:
             self._inverted_index[t][doc_id] = np.int8(s)
         return True
 
-    def rank(self, tokens: List[str]):
+    def rank(self, tokens: List[str], top_k: int):
         """
         :param tokens: tokenized query
         :return:
@@ -56,4 +57,4 @@ class BM25Index(BaseIndex):
 
         # merge by doc_ids
         results = sorted([(v, k) for k, v in temp.items()], reverse=True, key=lambda x: x[0])
-        return results
+        return results[0:top_k]

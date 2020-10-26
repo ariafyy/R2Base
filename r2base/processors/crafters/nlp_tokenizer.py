@@ -37,8 +37,8 @@ class NlpTokenizer(ProcessorBase):
             print('{}->{}'.format(text, tokens))
         return tokens
 
-    def run(self, data):
-        pass
+    def run(self, data, lang='en'):
+        return self.tokenize(lang, data)
 
 
 if __name__ == "__main__":

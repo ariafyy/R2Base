@@ -17,12 +17,12 @@ class EngineBase(object):
         return '{}-{}'.format(index_id, field)
 
     def _load_index(self, index_id):
-        if not os.path.exists(index_id):
+        if not os.path.exists(os.path.join(self.index_dir, index_id)):
             raise Exception("Index {} does not exist.".format(index_id))
 
-        _index = pkl.load(open(index_id, 'rb'))
+        _index = pkl.load(open(os.path.join(self.index_dir, index_id), 'rb'))
         mappings = _index['mappings']
         return _index, mappings
 
     def _dump_index(self, index_id, _index):
-        return pkl.dump(_index, open(index_id, 'wb'))
+        return pkl.dump(_index, open(os.path.join(self.index_dir, index_id), 'wb'))

@@ -30,15 +30,17 @@ class Indexer(EngineBase):
                 elif mapping['type'] == FT.vector:
                     _index[field] = VectorIndex(sub_id, mapping['num_dim'])
 
-                elif mapping['type'] == FT.text:
+                elif mapping['type'] == FT.text and 'index' in mapping:
                     if mapping['index'] == IT.CUS_INVERTED:
                         _index[field] = InvertedIndex(sub_id)
 
                     elif mapping['index'] == IT.BM25:
                         _index[field] = BM25Index(sub_id)
+                        if 'q_processor' not in mapping:
+                            mapping['q_processor'] = mapping['processor']
 
-                    elif mapping.index == IT.VECTOR:
-                        _index[field] = VectorIndex(sub_id, mapping.num_dim)
+                    elif mapping['index'] == IT.VECTOR:
+                        _index[field] = VectorIndex(sub_id, mapping['num_dim'])
                 else:
                     _index[field] = None
             else:
@@ -69,15 +71,16 @@ class Indexer(EngineBase):
                     self.logger.warning("{} is not defined in mapping".format(field))
                     continue
 
-                if type(mappings[field]['type']) == FT.keyword:
+                if mappings[field]['type'] == FT.keyword:
                     _index[field].add(value, d[FT.id])
 
-                elif type(mappings[field]['type']) == FT.vector:
+                elif mappings[field]['type'] == FT.vector:
                     _index[field].add(value, d[FT.id])
 
-                elif type(mappings[field]['type']) == FT.text:
+                elif mappings[field]['type'] == FT.text and 'index' in mappings[field]:
                     pipe = Pipeline(mappings[field]['processor'])
-                    anno_value = pipe.run(value)
+                    kwargs = {'lang': mappings[field]['lang']}
+                    anno_value = pipe.run(value, **kwargs)
 
                     # run encoders or NLP processors
                     if type(_index[field]) is VectorIndex:
