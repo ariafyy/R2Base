@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter
 
-from legal_parser.models.heartbeat import HeartbeatResult
+from r2base.http.schemas.heartbeat import HeartbeatResult
 
 router = APIRouter()
 

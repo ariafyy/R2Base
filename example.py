@@ -7,29 +7,27 @@ if __name__ == "__main__":
     ranker = Ranker()
 
     mapping = {
-        'key': {'type': 'keyword'},
+        'key':   {'type': 'keyword'},
         'text1': {'type': 'text',
                   'lang': 'en',
                   'index': 'bm25',
                   'processor': 'lower,tokenize'
                   },
-
         'vector': {'type': 'vector',
                    'num_dim': 4},
-
         'text2': {'type': 'text',
                   'lang': 'en',
-                  #'index': 'vector',
-                  #"num_dim": 786,
-                  #'processor': 'encode',
-                  #'model': 'bert-base-uncased'
+                  'index': 'vector',
+                  "num_dim": 786,
+                  'processor': 'encode',
+                  'model': 'bert-base-uncased'
                   },
-
         'text3': {'type': 'text',
                   'lang': 'en',
-                  #'index': 'custom_inverted',
-                  #'processo': 'encode',
-                  #'model': 'bert-ti-log'
+                  'index': 'custom_inverted',
+                  'processor': 'encode',
+                  'q_processor': 'bert-bert-uncased',
+                  'model': 'bert-sparta'
                   }
     }
     doc1 = {
@@ -51,6 +49,7 @@ if __name__ == "__main__":
     indexer.create_index(index, mapping)
     doc_id = indexer.add_doc(index, [doc1, doc2])
     print(ranker.read_doc(index, doc_id))
-    print(ranker.query(index, {'query': {'text1': 'china'}}))
+    print(ranker.query(index, {'query': {'text1': 'china',
+                                         'key': "123"}}))
 
     #'vector': np.array([1, 1, 2, 3])
