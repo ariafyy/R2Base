@@ -48,9 +48,9 @@ if __name__ == "__main__":
     }
 
     index = 'test'
-    #indexer.create_index(index, mapping)
-    #doc_id = indexer.add_doc(index, [doc1, doc2])
-    #print(ranker.read_doc(index, doc_id))
+    indexer.create_index(index, mapping)
+    doc_id = indexer.add_doc(index, [doc1, doc2])
+    print(ranker.read_doc(index, doc_id))
     print(ranker.query(index, {'query': {'text1': 'china'}}))
 
     #'vector': np.array([1, 1, 2, 3])

@@ -1,12 +1,13 @@
 import stanza
 from r2base.processors.bases import ProcessorBase
+from r2base.config import EnvVar
 import os
 
 
 class NlpTokenizer(ProcessorBase):
     models = {}
     root_dir = os.path.dirname(os.path.realpath(__file__)).replace('r2base/processors/crafters', '')
-    rsc_dir = os.path.join(root_dir, 'resources/stanza')
+    rsc_dir = os.path.join(root_dir, '{}/stanza'.format(EnvVar.MODEL_DIR))
 
     @classmethod
     def _get_model(cls, lang, split_words=True):

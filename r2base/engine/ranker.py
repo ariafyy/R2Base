@@ -20,7 +20,7 @@ class Ranker(EngineBase):
         docs = [_index[FT.id].get(_id) for _id in ids]
         return docs
 
-    def _fuse_rankers(self, _index, ranks, filters, top_k):
+    def _fuse_results(self, _index, ranks, filters, top_k):
         if len(filters) > 0:
             if len(ranks) > 0:
                 filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
@@ -91,7 +91,7 @@ class Ranker(EngineBase):
                 elif sub_index.type is IT.VECTOR:
                     pass
 
-        docs = self._fuse_rankers(_index, ranks, filters, top_k)
+        docs = self._fuse_results(_index, ranks, filters, top_k)
 
         return docs
 

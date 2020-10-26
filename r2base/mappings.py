@@ -40,7 +40,6 @@ class TextMapping(BaseMapping):
         assert self.type == FT.text
 
 
-
 if __name__ == "__main__":
     x = KeywordMapping({"type": "keyword"})
     print(x.type)
