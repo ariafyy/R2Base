@@ -34,6 +34,9 @@ class Indexer(EngineBase):
                     if 'q_processor' not in mapping:
                         mapping['q_processor'] = mapping['processor']
 
+                    if 'q_model_id' not in mapping and 'model_id' in mapping:
+                        mapping['q_model_id'] = mapping['model_id']
+
                     if mapping['index'] == IT.CUS_INVERTED:
                         _index[field] = InvertedIndex(sub_id)
 
@@ -89,10 +92,10 @@ class Indexer(EngineBase):
                         _index[field].add(anno_value, d[FT.id])
 
                     elif type(_index[field]) is InvertedIndex:
-                        kwargs = {'model_id': mappings[field]['model_id']}
+                        kwargs = {'model_id': mappings[field]['model_id'], 'mode': 'tscore'}
                         anno_value = pipe.run(value, **kwargs)
 
-                        _index[field].add(anno_value, d[FT.id])
+                        _index[field].add(anno_value[0], d[FT.id])
 
                     elif type(_index[field]) is BM25Index:
                         kwargs = {'lang': mappings[field]['lang']}

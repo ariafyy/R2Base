@@ -24,10 +24,11 @@ if __name__ == "__main__":
                   },
         'text3': {'type': 'text',
                   'lang': 'en',
-                  #'index': 'custom_inverted',
-                  #'processor': 'encode',
-                  #'q_processor': 'bert-bert-uncased',
-                  #'model': 'bert-sparta'
+                  'index': 'custom_inverted',
+                  'processor': 'py_encode',
+                  'q_processor': 'wordpiece',
+                  'model_id': 'bert-base-uncase-ti-log-max-320head-snm',
+                  'q_model_id': 'bert-base-uncased'
                   }
     }
     doc1 = {
@@ -35,14 +36,14 @@ if __name__ == "__main__":
         'text1': 'hello i am from New York',
         'vector': np.array([0, 1, 2, 3]),
         'text2': 'how are you doing?',
-        "text3": "I am doing fine."
+        "text3": "<a> I am doing fine. </a>"
     }
     doc2 = {
         'key': '234',
         'text1': 'hello i am from China',
         'vector': np.array([0, 1, 3, 1]),
         'text2': 'good bye',
-        "text3": "I am doing bad."
+        "text3": "<a> I am doing bad. </a>"
     }
 
     index = 'test'
@@ -50,6 +51,4 @@ if __name__ == "__main__":
     doc_id = indexer.add_doc(index, [doc1, doc2])
     print(ranker.read_doc(index, doc_id))
     print(ranker.query(index, {'query': {'text2': 'bye bye',
-                                         'text1': "i"}}))
-
-    #'vector': np.array([1, 1, 2, 3])
+                                         'text3': "I am doing terrible"}}))

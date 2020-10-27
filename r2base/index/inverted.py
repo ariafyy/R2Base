@@ -17,7 +17,7 @@ class InvertedIndex(BaseIndex):
             self._inverted_index[t][doc_id] = np.float16(s)
         return True
 
-    def rank(self, tokens: Union[List[str], List[Tuple]]):
+    def rank(self, tokens: Union[List[str], List[Tuple]], top_k: int):
         temp = defaultdict(float)
         for t in tokens:
             for doc_id, v in self._inverted_index.get(t, {}).items():
@@ -25,7 +25,7 @@ class InvertedIndex(BaseIndex):
 
         # merge by doc_ids
         results = sorted([(v, k) for k, v in temp.items()], reverse=True, key=lambda x: x[0])
-        return results
+        return results[0:top_k]
 
 
 class BM25Index(BaseIndex):

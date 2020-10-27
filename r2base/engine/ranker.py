@@ -86,11 +86,16 @@ class Ranker(EngineBase):
                         ranks[_id] = score + ranks.get(_id, 0.0)
 
                 elif sub_index.type is IT.CUS_INVERTED:
-                    pass
+                    pipe = Pipeline(mappings[field]['q_processor'])
+                    kwargs = {'model_id': mappings[field]['q_model_id']}
+                    anno_value = pipe.run(value, **kwargs)
+                    temp = sub_index.rank(anno_value, top_k)
+                    for score, _id in temp:
+                        ranks[_id] = score + ranks.get(_id, 0.0)
 
                 elif sub_index.type is IT.VECTOR:
                     pipe = Pipeline(mappings[field]['q_processor'])
-                    kwargs = {'model_id': mappings[field]['model_id']}
+                    kwargs = {'model_id': mappings[field]['q_model_id']}
                     anno_value = pipe.run(value, **kwargs)
                     temp = sub_index.rank(anno_value, top_k)
                     for score, _id in temp:
