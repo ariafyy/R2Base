@@ -20,8 +20,13 @@ class InvertedIndex(BaseIndex):
     def rank(self, tokens: Union[List[str], List[Tuple]], top_k: int):
         temp = defaultdict(float)
         for t in tokens:
-            for doc_id, v in self._inverted_index.get(t, {}).items():
-                temp[doc_id] += v
+            if type(t) is tuple:
+                weight, token = t
+            else:
+                weight, token = 1.0, t
+
+            for doc_id, v in self._inverted_index.get(token, {}).items():
+                temp[doc_id] += v * weight
 
         # merge by doc_ids
         results = sorted([(v, k) for k, v in temp.items()], reverse=True, key=lambda x: x[0])
