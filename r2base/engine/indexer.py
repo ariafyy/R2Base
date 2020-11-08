@@ -7,6 +7,8 @@ from r2base import IndexType as IT
 from r2base.processors.pipeline import Pipeline
 import uuid
 import logging
+from tqdm import tqdm
+from typing import Union, List, Dict
 
 
 class Indexer(EngineBase):
@@ -16,7 +18,7 @@ class Indexer(EngineBase):
     def __init__(self):
         pass
 
-    def create_index(self, index_id, mappings):
+    def create_index(self, index_id: str, mappings: dict):
         _index = {FT.id: KeyValueIndex(self._sub_index(index_id, FT.id)),
                   'mappings': mappings}
 
@@ -53,14 +55,17 @@ class Indexer(EngineBase):
         self._dump_index(index_id, _index)
         return True
 
-    def add_doc(self, index_id, docs):
+    def add_docs(self, index_id: str,
+                 docs: Union[Dict, List[Dict]],
+                 show_progress:bool = False):
+
         if type(docs) is not list:
             docs = [docs]
 
         _index, mappings = self._load_index(index_id)
 
         ids = []
-        for d in docs:
+        for d in tqdm(docs, disable=not show_progress):
             if FT.id not in d:
                 d[FT.id] = str(uuid.uuid4())
 

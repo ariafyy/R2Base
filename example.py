@@ -26,8 +26,8 @@ if __name__ == "__main__":
                   'lang': 'en',
                   'index': 'custom_inverted',
                   'processor': 'py_encode',
-                  'q_processor': 'wordpiece',
                   'model_id': 'bert-base-uncase-ti-log-max-320head-snm',
+                  'q_processor': 'wordpiece',
                   'q_model_id': 'bert-base-uncased'
                   }
     }
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     index = 'test'
     indexer.create_index(index, mapping)
-    doc_id = indexer.add_doc(index, [doc1, doc2])
+    doc_id = indexer.add_docs(index, [doc1, doc2])
     print(ranker.read_doc(index, doc_id))
     print(ranker.query(index, {'query': {'text2': 'bye bye',
                                          'text3': "I am doing terrible"}}))

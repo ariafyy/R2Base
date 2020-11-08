@@ -2,16 +2,18 @@ import stanza
 from r2base.processors.bases import ProcessorBase
 from r2base.config import EnvVar
 import os
+import logging
 
 
 class NlpTokenizer(ProcessorBase):
     models = {}
     root_dir = os.path.dirname(os.path.realpath(__file__)).replace('r2base/processors/crafters', '')
     rsc_dir = os.path.join(root_dir, '{}/stanza'.format(EnvVar.MODEL_DIR))
-
+    logger = logging.getLogger(__name__)
     @classmethod
-    def _get_model(cls, lang, split_words=True):
+    def _get_model(cls, lang:str, split_words:bool = True):
         if lang not in cls.models:
+            cls.logger.info("Loading tokenizer for {}".format(lang))
             if lang == 'ko' and split_words:
                 nlp = stanza.Pipeline(dir=cls.rsc_dir, lang=lang, processors='tokenize,pos,lemma')
             else:
@@ -21,7 +23,7 @@ class NlpTokenizer(ProcessorBase):
         return cls.models[lang]
 
     @classmethod
-    def tokenize(cls, lang, text, verbose=False):
+    def tokenize(cls, lang: str, text: str, verbose:bool = False):
         res = cls._get_model(lang)(text)
         tokens = []
         for s in res.sentences:

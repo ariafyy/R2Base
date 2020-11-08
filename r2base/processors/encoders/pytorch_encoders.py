@@ -16,7 +16,7 @@ class TransformerEncoders(ProcessorBase):
         if mode == 'tscore':
             args = {'start_symbol': '<a>', 'end_symbol': '</a>', 'return_meta': True,
                     'min_threshold': 1e-2,
-                    'top_k': 2000,
+                    'top_k': 768,
                     'to_sparse': 'csr',
                     'term_batch_size': 3000,
                     'force_seq_len': -1,

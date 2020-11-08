@@ -21,6 +21,9 @@ class Ranker(EngineBase):
         return docs
 
     def _fuse_results(self, _index, ranks, filters, top_k):
+        if len(ranks) == 0 and len(filters) == 0:
+            return []
+
         if len(filters) > 0:
             if len(ranks) > 0:
                 filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
