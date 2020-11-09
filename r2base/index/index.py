@@ -1,7 +1,7 @@
 from typing import Dict, Union, List
 from r2base import FieldType as FT
 from r2base import IndexType as IT
-import pickle as pkl
+import json
 from r2base.index.inverted import BM25Index
 from r2base.index.keyvalue import RedisKVRankIndex, RedisKVIndex
 import os
@@ -19,9 +19,31 @@ class Index(object):
         self.index_id = index_id
         self.index_dir = os.path.join(root_dir, self.index_id)
         self.mappings = None
+        self._clients = dict()
         if not os.path.exists(self.index_dir):
             self.logger.info("Created a new index dir {}".format(self.index_dir))
             os.mkdir(self.index_dir)
+
+    def get_sub_index(self, field, mapping):
+        if field not in self._clients:
+            sub_id = self._sub_index(field)
+            if mapping['type'] == FT.id:
+                self._clients[field] = RedisKVIndex(self.index_dir, sub_id, mapping)
+
+            elif mapping['type'] == FT.keyword:
+                self._clients[field] = RedisKVRankIndex(self.index_dir, sub_id, mapping)
+
+                # elif mapping['type'] == FT.vector:
+                #    VectorIndexBase(self.root_dir, sub_id, mapping).create_index()
+
+            elif mapping['type'] == FT.text and 'index' in mapping:
+                # if mapping['index'] == IT.CUS_INVERTED:
+                #    InvertedIndexBase(self.root_dir, sub_id, mapping).create_index()
+                if mapping['index'] == IT.BM25:
+                    self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
+
+        return self._clients.get(field)
+
 
     @property
     def id_index(self):
@@ -37,14 +59,14 @@ class Index(object):
         if not os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
             raise Exception("Index {} does not exist.".format(self.index_id))
 
-        self.mappings = pkl.load(open(os.path.join(self.index_dir, 'mappings.json'), 'rb'))
+        self.mappings = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
         return self.mappings
 
     def _dump_mappings(self,  mappings: Dict):
         if os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
             raise Exception("Index {} already existed".format(self.index_id))
 
-        return pkl.dump(mappings, open(os.path.join(self.index_dir, 'mappings.json'), 'wb'))
+        return json.dump(mappings, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
 
     def _fuse_results(self, ranks, filters, top_k):
         if len(ranks) == 0 and len(filters) == 0:
@@ -73,34 +95,18 @@ class Index(object):
         # assign the internal field and overwrite
         mappings[FT.id] = {'type': FT.id}
 
-        # TODO: add eval order
+        # add q_processor
         for field, mapping in mappings.items():
-            sub_id = self._sub_index(field)
-
-            if mapping['type'] == FT.id:
-                RedisKVIndex(self.index_dir, sub_id, mapping).create_index()
-
-            elif mapping['type'] == FT.keyword:
-                RedisKVRankIndex(self.index_dir, sub_id, mapping).create_index()
-
-            #elif mapping['type'] == FT.vector:
-            #    VectorIndexBase(self.root_dir, sub_id, mapping).create_index()
-
-            elif mapping['type'] == FT.text and 'index' in mapping:
+            if mapping['type'] == FT.text and 'index' in mapping:
                 if 'q_processor' not in mapping:
                     mapping['q_processor'] = mapping['processor']
 
                 if 'q_model_id' not in mapping and 'model_id' in mapping:
                     mapping['q_model_id'] = mapping['model_id']
 
-                #if mapping['index'] == IT.CUS_INVERTED:
-                #    InvertedIndexBase(self.root_dir, sub_id, mapping).create_index()
-
-                elif mapping['index'] == IT.BM25:
-                    BM25Index(self.index_dir, sub_id, mapping).create_index()
-
-                #elif mapping['index'] == IT.VECTOR:
-                #    VectorIndexBase(self.root_dir, sub_id, mapping).create_index()
+        # TODO: add eval order
+        for field, mapping in mappings.items():
+            self.get_sub_index(field, mapping).create_index()
 
         # dump the mapping to disk
         self._dump_mappings(mappings)
@@ -126,18 +132,20 @@ class Index(object):
                     self.logger.info("{} is missing in document".format(field))
                     continue
                 value = d[field]
+
                 if field == FT.id:
-                    RedisKVIndex(self.index_dir, self._sub_index(field), mapping).set(doc_id, d)
+                    self.get_sub_index(field, mapping).set(doc_id, d)
 
                 elif mapping['type'] == FT.keyword:
-                    RedisKVRankIndex(self.index_dir, self._sub_index(field), mapping).add(value, d[FT.id])
+                    self.get_sub_index(field, mapping).add(value, doc_id)
 
                 #elif mappings[field]['type'] == FT.vector:
                 #    _index[field].add(value, d[FT.id])
-
                 elif mapping['type'] == FT.text and 'index' in mapping:
 
                     pipe = Pipeline(mappings[field]['processor'])
+                    kwargs = {'lang': mappings[field]['lang']}
+                    anno_value = pipe.run(value, **kwargs)
 
                     # run encoders or NLP processors
                     #if type(_index[field]) is VectorIndexBase:
@@ -151,9 +159,7 @@ class Index(object):
 
                     #   _index[field].add(anno_value[0], d[FT.id])
                     if mapping['index'] == IT.BM25:
-                        kwargs = {'lang': mappings[field]['lang']}
-                        anno_value = pipe.run(value, **kwargs)
-                        BM25Index(self.index_dir, self._sub_index(field), mapping).add(anno_value, d[FT.id])
+                        self.get_sub_index(field, mapping).add(anno_value, doc_id)
 
         return ids
 

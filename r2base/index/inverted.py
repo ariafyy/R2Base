@@ -39,6 +39,8 @@ class BM25Index(IndexBase):
 
     def __init__(self, root_dir: str, index_id: str, mapping: Dict):
         super().__init__(root_dir, index_id, mapping)
+        self._writer = None
+        self._searcher = None
         self._client = None
 
     @property
@@ -46,6 +48,18 @@ class BM25Index(IndexBase):
         if self._client is None:
             self._client = tantivy.Index.open(self.work_dir)
         return self._client
+
+    @property
+    def writer(self):
+        if self._writer is None:
+            self._writer = self.client.writer()
+        return self._writer
+
+    @property
+    def searcher(self):
+        if self._searcher is None:
+            self._searcher = self.client.writer()
+        return self._searcher
 
     def create_index(self):
         if not os.path.exists(self.work_dir):
@@ -59,9 +73,8 @@ class BM25Index(IndexBase):
         tantivy.Index(schema, self.work_dir)
 
     def add(self, text: str, doc_id: str):
-        writer = self.client.writer()
-        writer.add_document(tantivy.Document(text=[text], _id=[doc_id]))
-        writer.commit()
+        self.writer.add_document(tantivy.Document(text=[text], _id=[doc_id]))
+        self.writer.commit()
         self.client.reload()
         return True
 
@@ -70,10 +83,9 @@ class BM25Index(IndexBase):
         :param tokens: tokenized query
         :return:
         """
-        searcher = self.client.searcher()
         query = self.client.parse_query(text, ["text"])
-        res = searcher.search(query, top_k)
-        results = [(h[0], searcher.doc(h[1])['_id']) for h in res.hits]
+        res = self.searcher.search(query, top_k)
+        results = [(h[0], self.searcher.doc(h[1])['_id']) for h in res.hits]
         return results
 
 
