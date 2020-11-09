@@ -1,7 +1,7 @@
 import os
-import pickle as pkl
 from r2base.config import EnvVar
 import logging
+from r2base.index.index import Index
 
 
 class EngineBase(object):
@@ -13,16 +13,16 @@ class EngineBase(object):
         logger.info("Created a new index dir {}".format(index_dir))
         os.mkdir(index_dir)
 
-    def _sub_index(self, index_id, field):
-        return '{}-{}'.format(index_id, field)
+    indexes = dict()
 
-    def _load_index(self, index_id):
-        if not os.path.exists(os.path.join(self.index_dir, index_id)):
-            raise Exception("Index {} does not exist.".format(index_id))
+    def get_index(self, index_id):
+        if index_id not in self.indexes:
+            if len(self.indexes) > 100:
+                self.indexes.pop(list(self.indexes.keys())[0])
 
-        _index = pkl.load(open(os.path.join(self.index_dir, index_id), 'rb'))
-        mappings = _index['mappings']
-        return _index, mappings
+            self.indexes[index_id] = Index(self.index_dir, index_id)
 
-    def _dump_index(self, index_id, _index):
-        return pkl.dump(_index, open(os.path.join(self.index_dir, index_id), 'wb'))
+        return self.indexes[index_id]
+
+
+

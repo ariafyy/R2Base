@@ -12,7 +12,7 @@ class TransformerEncoders(ProcessorBase):
 
         return self.model_ids[model_id]
 
-    def run(self, data, model_id=None, mode='default'):
+    def run(self, data: str, model_id:str = None, mode: str ='default'):
         if mode == 'tscore':
             args = {'start_symbol': '<a>', 'end_symbol': '</a>', 'return_meta': True,
                     'min_threshold': 1e-2,
@@ -34,7 +34,7 @@ class TransformerEncoders(ProcessorBase):
                 coo_row = f[row_id].tocoo()
                 terms = []
                 for col_id, v in zip(coo_row.col, coo_row.data):
-                    terms.append((meta['vocab'][col_id], float(v),))
+                    terms.append((meta['vocab'][col_id], float(v)))
                 terms = sorted(terms, key=lambda x: x[1] * -1)
                 result.append(terms)
         else:

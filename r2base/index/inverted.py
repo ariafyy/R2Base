@@ -1,16 +1,17 @@
-from r2base.index import BaseIndex
+from r2base.index import IndexBase
 from r2base import IndexType as IT
 from collections import defaultdict, Counter
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 import numpy as np
+import os
+import tantivy
 
 
-class InvertedIndex(BaseIndex):
+class InvertedIndex(IndexBase):
     type = IT.CUS_INVERTED
 
-    def __init__(self, index_id: str):
-        self.index_id = index_id
-        self._inverted_index = defaultdict(dict)
+    def create_index(self):
+        pass
 
     def add(self, scores: List[Tuple], doc_id: str):
         for t, s in scores:
@@ -33,33 +34,57 @@ class InvertedIndex(BaseIndex):
         return results[0:top_k]
 
 
-class BM25Index(BaseIndex):
+class BM25Index(IndexBase):
     type = IT.BM25
 
-    def __init__(self, index_id: str):
-        self.index_id = index_id
-        self._inverted_index = defaultdict(dict)
-        self._doc_ids = set()
+    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+        super().__init__(root_dir, index_id, mapping)
+        self._client = None
 
-    def add(self, tokens: List[str], doc_id: str):
-        scores = Counter(tokens).most_common()
-        self._doc_ids.add(doc_id)
-        for t, s in scores:
-            self._inverted_index[t][doc_id] = np.int8(s)
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = tantivy.Index.open(self.work_dir)
+        return self._client
+
+    def create_index(self):
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
+            self.logger.info("Create data folder at {}".format(self.work_dir))
+
+        schema_builder = tantivy.SchemaBuilder()
+        schema_builder.add_text_field("text", stored=True)
+        schema_builder.add_text_field("_id", stored=True, index_option='basic')
+        schema = schema_builder.build()
+        tantivy.Index(schema, self.work_dir)
+
+    def add(self, text: str, doc_id: str):
+        writer = self.client.writer()
+        writer.add_document(tantivy.Document(text=[text], _id=[doc_id]))
+        writer.commit()
+        self.client.reload()
         return True
 
-    def rank(self, tokens: List[str], top_k: int):
+    def rank(self, text: str, top_k: int):
         """
         :param tokens: tokenized query
         :return:
         """
-        temp = defaultdict(float)
-        for t in tokens:
-            idf = np.log(len(self._doc_ids) / (len(self._inverted_index.get(t, {})) + 1e-5))
+        searcher = self.client.searcher()
+        query = self.client.parse_query(text, ["text"])
+        res = searcher.search(query, top_k)
+        results = [(h[0], searcher.doc(h[1])['_id']) for h in res.hits]
+        return results
 
-            for doc_id, v in self._inverted_index.get(t, {}).items():
-                temp[doc_id] += float(v) * idf
 
-        # merge by doc_ids
-        results = sorted([(v, k) for k, v in temp.items()], reverse=True, key=lambda x: x[0])
-        return results[0:top_k]
+if __name__ == "__main__":
+    root = '/Users/tonyzhao/Documents/projects/R2Base/_index'
+    idx = 'test-3'
+    if not os.path.exists(os.path.join(root, idx)):
+        os.mkdir(os.path.join(root, idx))
+
+    i = BM25Index(root, 'tttt', {})
+    i.create_index()
+    i.add('我 来 自 上海，叫做 赵天成', '1')
+    i.add('我 来 自 北京，叫做 赵天成', '2')
+    print(i.rank('我', 2))

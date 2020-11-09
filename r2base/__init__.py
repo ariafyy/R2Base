@@ -11,3 +11,4 @@ class IndexType(object):
     VECTOR = "vector"
     KEYWORD = "keyword"
     BM25 = "bm25"
+    MEILI = "meili"

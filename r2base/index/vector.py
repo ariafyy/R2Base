@@ -1,9 +1,9 @@
 import numpy as np
-from r2base.index import BaseIndex
+from r2base.index import IndexBase
 from r2base import IndexType as IT
 
 
-class VectorIndex(BaseIndex):
+class VectorIndex(IndexBase):
     type = IT.VECTOR
 
     def __init__(self, index_id, num_dim):
