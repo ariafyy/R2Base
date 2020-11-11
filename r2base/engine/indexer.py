@@ -15,9 +15,13 @@ class Indexer(EngineBase):
 
     def add_docs(self, index_id: str,
                  docs: Union[Dict, List[Dict]],
+                 batch_size: int = 100,
                  show_progress:bool = False):
-        return self.get_index(index_id).add_docs(docs, show_progress)
+        return self.get_index(index_id).add_docs(docs, batch_size, show_progress)
 
+    def read_doccs(self, index_id: str,
+                 doc_ids: Union[str, List[str]]):
 
+        return self.get_index(index_id)
 
 

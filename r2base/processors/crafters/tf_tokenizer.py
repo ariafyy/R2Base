@@ -1,5 +1,6 @@
 from r2base.processors.bases import ProcessorBase
 from soco_encoders.model_loaders import EncoderLoader
+from typing import Union, List
 
 
 class TransformerTokenizer(ProcessorBase):
@@ -10,8 +11,10 @@ class TransformerTokenizer(ProcessorBase):
             self.models[model_id] = EncoderLoader.load_tokenizer(model_id)
         return self.models[model_id]
 
-    def run(self, data: str, **kwargs):
+    def run(self, data: Union[List[str], str], **kwargs) -> Union[List[List[str]], List[str]]:
         model_id = kwargs['model_id']
         tokenizer = self._get_model(model_id)
-        tokens = tokenizer.tokenize(data)
-        return tokens
+        if type(data) is list:
+            return [tokenizer.tokenize(l) for l in data]
+        else:
+            return tokenizer.tokenize(data)

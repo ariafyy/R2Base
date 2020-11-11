@@ -21,6 +21,7 @@ class RedisKVIndex(IndexBase):
         return self._client
 
     def set(self, key: str, value):
+
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None

@@ -1,14 +1,15 @@
 from typing import Dict, Union, List
 from r2base import FieldType as FT
 from r2base import IndexType as IT
-import json
 from r2base.index.inverted import BM25Index
 from r2base.index.keyvalue import RedisKVRankIndex, RedisKVIndex
+from r2base.processors.pipeline import Pipeline
+from r2base.utils import chunks
 import os
 from tqdm import tqdm
+import json
 import uuid
 import logging
-from r2base.processors.pipeline import Pipeline
 
 
 class Index(object):
@@ -24,7 +25,11 @@ class Index(object):
             self.logger.info("Created a new index dir {}".format(self.index_dir))
             os.mkdir(self.index_dir)
 
-    def get_sub_index(self, field, mapping):
+    @property
+    def id_index(self):
+        return RedisKVIndex(self.index_dir, self._sub_index(FT.id), {'type': FT.id})
+
+    def get_sub_index(self, field: str, mapping: Dict):
         if field not in self._clients:
             sub_id = self._sub_index(field)
             if mapping['type'] == FT.id:
@@ -33,21 +38,12 @@ class Index(object):
             elif mapping['type'] == FT.keyword:
                 self._clients[field] = RedisKVRankIndex(self.index_dir, sub_id, mapping)
 
-                # elif mapping['type'] == FT.vector:
-                #    VectorIndexBase(self.root_dir, sub_id, mapping).create_index()
-
             elif mapping['type'] == FT.text and 'index' in mapping:
-                # if mapping['index'] == IT.CUS_INVERTED:
-                #    InvertedIndexBase(self.root_dir, sub_id, mapping).create_index()
+
                 if mapping['index'] == IT.BM25:
                     self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
 
         return self._clients.get(field)
-
-
-    @property
-    def id_index(self):
-        return RedisKVIndex(self.index_dir, self._sub_index(FT.id), {'type': FT.id})
 
     def _sub_index(self, field: str):
         return '{}-{}'.format(self.index_id, field)
@@ -112,54 +108,55 @@ class Index(object):
         self._dump_mappings(mappings)
         return True
 
-    def add_docs(self, docs: Union[Dict, List[Dict]], show_progress:bool = False):
+    def add_docs(self, docs: Union[Dict, List[Dict]], batch_size: int = 100, show_progress:bool = False):
 
         if type(docs) is not list:
             docs = [docs]
 
         mappings = self._load_mappings()
 
+        # process by columns
         ids = []
-        for d in tqdm(docs, disable=not show_progress):
-            if FT.id not in d:
-                d[FT.id] = str(uuid.uuid4())
-            doc_id = d[FT.id]
+        for batch in tqdm(chunks(docs, win_len=batch_size, stride_len=batch_size),
+                          total=int(len(docs)/batch_size),
+                          disable=not show_progress):
+            # set missing ids
+            batch_ids = []
+            for d in batch:
+                if FT.id not in d:
+                    d[FT.id] = str(uuid.uuid4())
+                batch_ids.append(d[FT.id])
 
-            ids.append(d[FT.id])
-
+            # process data column by column
             for field, mapping in mappings.items():
-                if field not in d:
-                    self.logger.info("{} is missing in document".format(field))
-                    continue
-                value = d[field]
+                batch_ids, batch_docs = [], []
+                for d in batch:
+                    if field not in d:
+                        self.logger.info("{} is missing in document".format(field))
+                        continue
+                    batch_ids.append(d[FT.id])
+                    batch_docs.append(d)
 
+                # insert into the index by batch
                 if field == FT.id:
-                    self.get_sub_index(field, mapping).set(doc_id, d)
+                    for b_doc_id, b_d in zip(batch_ids, batch_docs):
+                        self.get_sub_index(field, mapping).set(b_doc_id, b_d)
 
                 elif mapping['type'] == FT.keyword:
-                    self.get_sub_index(field, mapping).add(value, doc_id)
+                    for b_doc_id, b_d in zip(batch_ids, batch_docs):
+                        self.get_sub_index(field, mapping).add(b_d[field], b_doc_id)
 
-                #elif mappings[field]['type'] == FT.vector:
-                #    _index[field].add(value, d[FT.id])
                 elif mapping['type'] == FT.text and 'index' in mapping:
 
                     pipe = Pipeline(mappings[field]['processor'])
                     kwargs = {'lang': mappings[field]['lang']}
-                    anno_value = pipe.run(value, **kwargs)
+                    annos = pipe.run([b_d[field] for b_d in batch_docs], **kwargs)
 
-                    # run encoders or NLP processors
-                    #if type(_index[field]) is VectorIndexBase:
-                    #    kwargs = {'model_id': mappings[field]['model_id']}
-                    #    anno_value = pipe.run(value, **kwargs)
-                    #    _index[field].add(anno_value, d[FT.id])
-
-                    #if type(_index[field]) is InvertedIndexBase:
-                    #    kwargs = {'model_id': mappings[field]['model_id'], 'mode': 'tscore'}
-                    #    anno_value = pipe.run(value, **kwargs)
-
-                    #   _index[field].add(anno_value[0], d[FT.id])
                     if mapping['index'] == IT.BM25:
-                        self.get_sub_index(field, mapping).add(anno_value, doc_id)
+                        self.get_sub_index(field, mapping).add(annos, batch_ids)
+
+            # save ids here
+            ids.extend(batch_ids)
 
         return ids
 
@@ -190,7 +187,7 @@ class Index(object):
                 continue
             mapping = mappings[field]
             if mapping['type'] == FT.keyword:
-                temp = RedisKVRankIndex(self.index_dir, self._sub_index(field), mapping).rank(value)
+                temp = self.get_sub_index(field, mapping).rank(value)
                 filters = filters.union(temp)
 
                 #elif sub_index.type is IT.VECTOR:
@@ -204,7 +201,7 @@ class Index(object):
                 anno_value = pipe.run(value, **kwargs)
 
                 if mapping['index'] == IT.BM25:
-                    temp = BM25Index(self.index_dir, self._sub_index(field), mapping).rank(anno_value, top_k)
+                    temp = self.get_sub_index(field, mapping).rank(anno_value, top_k)
                     for score, _id in temp:
                         ranks[_id] = score + ranks.get(_id, 0.0)
 

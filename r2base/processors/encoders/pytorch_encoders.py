@@ -1,5 +1,6 @@
 from r2base.processors.bases import ProcessorBase
 from soco_encoders.model_loaders import EncoderLoader
+from typing import Union, List
 
 
 class TransformerEncoders(ProcessorBase):
@@ -12,7 +13,7 @@ class TransformerEncoders(ProcessorBase):
 
         return self.model_ids[model_id]
 
-    def run(self, data: str, model_id:str = None, mode: str ='default'):
+    def run(self, data: Union[List[str], str], model_id:str = None, mode: str ='default'):
         if mode == 'tscore':
             args = {'start_symbol': '<a>', 'end_symbol': '</a>', 'return_meta': True,
                     'min_threshold': 1e-2,
@@ -26,7 +27,10 @@ class TransformerEncoders(ProcessorBase):
         else:
             args = None
 
-        vector = self._get_model(model_id).encode([data], mode=mode, args=args)
+        if type(data) is not list:
+            data = [data]
+
+        vector = self._get_model(model_id).encode(data, mode=mode, args=args)
         if type(vector) is tuple:
             f, meta = vector
             result = []

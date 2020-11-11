@@ -58,7 +58,8 @@ class BM25Index(IndexBase):
     @property
     def searcher(self):
         if self._searcher is None:
-            self._searcher = self.client.writer()
+            self._searcher = self.client.searcher()
+
         return self._searcher
 
     def create_index(self):
@@ -72,8 +73,9 @@ class BM25Index(IndexBase):
         schema = schema_builder.build()
         tantivy.Index(schema, self.work_dir)
 
-    def add(self, text: str, doc_id: str):
-        self.writer.add_document(tantivy.Document(text=[text], _id=[doc_id]))
+    def add(self, data: List[str], doc_ids: List[str]):
+        for text, doc_id in zip(data, doc_ids):
+            self.writer.add_document(tantivy.Document(text=text, _id=doc_id))
         self.writer.commit()
         self.client.reload()
         return True
@@ -85,7 +87,7 @@ class BM25Index(IndexBase):
         """
         query = self.client.parse_query(text, ["text"])
         res = self.searcher.search(query, top_k)
-        results = [(h[0], self.searcher.doc(h[1])['_id']) for h in res.hits]
+        results = [(h[0], self.searcher.doc(h[1])['_id'][0]) for h in res.hits]
         return results
 
 
