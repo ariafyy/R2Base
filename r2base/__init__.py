@@ -1,4 +1,9 @@
 
+class ServerType(object):
+    indexer = "indexer"
+    ranker = "ranker"
+
+
 class FieldType(object):
     id = '_id'
     keyword = 'keyword'

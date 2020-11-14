@@ -6,7 +6,7 @@ from r2base.http.schemas.heartbeat import HeartbeatResult
 router = APIRouter()
 
 
-@router.get("/heartbeat", response_model=HeartbeatResult, name="heartbeat")
+@router.get("/ping", response_model=HeartbeatResult, name="ping")
 def get_hearbeat() -> HeartbeatResult:
     heartbeat = HeartbeatResult(is_alive=True)
     return heartbeat

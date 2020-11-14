@@ -1,12 +1,19 @@
 from typing import List
 from pydantic import BaseModel
-from r2base.config import EnvVar
+from typing import Dict
 
 
-class IndexPayload(BaseModel):
-    doc: str
-    form: list = []
+class CreateIndexPayload(BaseModel):
+    index: str
+    mapping: Dict
 
 
-def payload_to_list(hpp: IndexPayload) -> List:
-    return [ hpp.doc]
+class AddDocPayload(BaseModel):
+    docs: List = []
+    index: str
+    batch_size: int = 100
+
+
+class RankReadPayload(BaseModel):
+    index: str
+    query: Dict = {}

@@ -1,6 +1,4 @@
 from r2base.engine.bases import EngineBase
-from r2base import FieldType as FT
-from r2base import IndexType as IT
 import logging
 from typing import Dict
 

@@ -32,3 +32,11 @@ class Token2Str(ProcessorBase):
             return [delimiter.join(d) for d in data]
         else:
             return delimiter.join(data)
+
+
+class SpaceTokenizer(ProcessorBase):
+    def run(self, data: Union[List[str], str], **kwargs) -> Union[List[List[str]], List[str]]:
+        if type(data) is List:
+            return [d.split() for d in data]
+        else:
+            return data.split()
