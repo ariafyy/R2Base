@@ -2,7 +2,7 @@ from r2base.index import IndexBase
 from sqlitedict import SqliteDict
 from r2base import IndexType as IT
 import logging
-from typing import Dict
+from typing import Dict, Union, List
 import os
 import sqlite3
 import numpy as np
@@ -76,9 +76,15 @@ class FilterIndex(IndexBase):
         c = self.client.cursor()
         c.execute('CREATE TABLE IF NOT EXISTS data (key TEXT, value TEXT)')
 
-    def add(self, key: str, value: str):
+    def add(self, key: Union[List[str], str], value: Union[List[str], str]):
         c = self.client.cursor()
-        c.execute('INSERT INTO data VALUES (?,?)', (key, value))
+        assert type(key) == type(value)
+        if type(key) is str:
+            c.execute('INSERT INTO data VALUES (?,?)', (key, value))
+        else:
+            for k, v in zip(key, value):
+                c.execute('INSERT INTO data VALUES (?,?)', (k, v))
+
         return self.client.commit()
 
     def rank(self, key: str):

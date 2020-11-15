@@ -175,8 +175,8 @@ class Index(object):
                         self.get_sub_index(field, mapping).set(b_doc_id, b_d)
 
                 elif mapping['type'] == FT.keyword:
-                    for b_doc_id, b_d in zip(batch_ids, batch_docs):
-                        self.get_sub_index(field, mapping).add(b_d[field], b_doc_id)
+                    batch_values = [doc[field] for doc in batch_docs]
+                    self.get_sub_index(field, mapping).add(batch_values, batch_ids)
 
                 elif mapping['type'] == FT.text and 'index' in mapping:
 
