@@ -66,7 +66,7 @@ class FilterIndex(IndexBase):
     @property
     def client(self):
         if self._client is None:
-            self._client = SqliteDict(os.path.join(self.work_dir, 'db.sqlite'), autocommit=True)
+            self._client = sqlite3.connect(os.path.join(self.work_dir, 'db.sqlite'))
         return self._client
 
     def create_index(self):

@@ -68,7 +68,7 @@ class BM25Index(IndexBase):
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
         schema_builder = tantivy.SchemaBuilder()
-        schema_builder.add_text_field("text", stored=True)
+        schema_builder.add_text_field("text", stored=False)
         schema_builder.add_text_field("_id", stored=True, index_option='basic')
         schema = schema_builder.build()
         tantivy.Index(schema, self.work_dir)
