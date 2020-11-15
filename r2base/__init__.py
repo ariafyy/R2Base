@@ -14,6 +14,6 @@ class FieldType(object):
 class IndexType(object):
     CUS_INVERTED = "custom_inverted"
     VECTOR = "vector"
-    KEYWORD = "keyword"
+    FILTER = "filter"
     BM25 = "bm25"
-    MEILI = "meili"
+    LOOKUP = "lookup"

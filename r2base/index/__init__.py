@@ -1,6 +1,8 @@
 from typing import Dict
+import tantivy
 import os
 import logging
+
 
 class IndexBase(object):
     type: str
@@ -22,3 +24,4 @@ class IndexBase(object):
 
     def rank(self, *args, **kwargs):
         pass
+

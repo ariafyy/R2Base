@@ -2,7 +2,7 @@ from typing import Dict, Union, List
 from r2base import FieldType as FT
 from r2base import IndexType as IT
 from r2base.index.inverted import BM25Index
-from r2base.index.keyvalue import RedisKVRankIndex, RedisKVIndex
+from r2base.index.keyvalue import FilterIndex, KVIndex
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks
 import os
@@ -27,16 +27,16 @@ class Index(object):
 
     @property
     def id_index(self):
-        return RedisKVIndex(self.index_dir, self._sub_index(FT.id), {'type': FT.id})
+        return KVIndex(self.index_dir, self._sub_index(FT.id), {'type': FT.id})
 
     def get_sub_index(self, field: str, mapping: Dict):
         if field not in self._clients:
             sub_id = self._sub_index(field)
             if mapping['type'] == FT.id:
-                self._clients[field] = RedisKVIndex(self.index_dir, sub_id, mapping)
+                self._clients[field] = KVIndex(self.index_dir, sub_id, mapping)
 
             elif mapping['type'] == FT.keyword:
-                self._clients[field] = RedisKVRankIndex(self.index_dir, sub_id, mapping)
+                self._clients[field] = FilterIndex(self.index_dir, sub_id, mapping)
 
             elif mapping['type'] == FT.text and 'index' in mapping:
 
@@ -46,9 +46,13 @@ class Index(object):
         return self._clients.get(field)
 
     def _sub_index(self, field: str):
+        # index-text
         return '{}-{}'.format(self.index_id, field)
 
     def _load_mappings(self):
+        """
+        :return: Load mapping from the disk.
+        """
         if self.mappings is not None:
             return self.mappings
 
@@ -59,12 +63,24 @@ class Index(object):
         return self.mappings
 
     def _dump_mappings(self,  mappings: Dict):
+        """
+        Save the mapping to the disk
+        :param mappings:
+        :return:
+        """
         if os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
             raise Exception("Index {} already existed".format(self.index_id))
 
         return json.dump(mappings, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
 
-    def _fuse_results(self, ranks, filters, top_k):
+    def _fuse_results(self, ranks, filters, top_k) -> List[Dict]:
+        """
+        Given ranks and filters to create final top-K list
+        :param ranks: retrieved docs with scores
+        :param filters: valid list of doc_ids
+        :param top_k: the size of return
+        :return:
+        """
         if len(ranks) == 0 and len(filters) == 0:
             return []
 
@@ -72,14 +88,17 @@ class Index(object):
             if len(ranks) > 0:
                 filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
                 filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)
-                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in filtered_ranks][0:top_k]
+                docs = [{'_source': self.id_index.get(_id), 'score': s}
+                        for _id, s in filtered_ranks][0:top_k]
             else:
-                docs = [{'_source': self.id_index.get(_id), 'score': -1} for _id in filters][0:top_k]
+                docs = [{'_source': self.id_index.get(_id), 'score': -1}
+                        for _id in filters][0:top_k]
         else:
             if len(ranks) > 0:
                 ranks = [(k, v) for k, v in ranks.items()]
                 ranks = sorted(ranks, key=lambda x: x[1], reverse=True)
-                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in ranks][0:top_k]
+                docs = [{'_source': self.id_index.get(_id), 'score': s}
+                        for _id, s in ranks][0:top_k]
             else:
                 # random sample some data
                 docs = self.id_index.sample(top_k)
@@ -88,6 +107,11 @@ class Index(object):
         return docs
 
     def create_index(self, mappings: Dict):
+        """
+        Normalize the mapping and create index for every sub-index
+        :param mappings: mapping of the index
+        """
+
         # assign the internal field and overwrite
         mappings[FT.id] = {'type': FT.id}
 
@@ -100,7 +124,6 @@ class Index(object):
                 if 'q_model_id' not in mapping and 'model_id' in mapping:
                     mapping['q_model_id'] = mapping['model_id']
 
-        # TODO: add eval order
         for field, mapping in mappings.items():
             self.get_sub_index(field, mapping).create_index()
 
@@ -108,13 +131,20 @@ class Index(object):
         self._dump_mappings(mappings)
         return True
 
-    def add_docs(self, docs: Union[Dict, List[Dict]], batch_size: int = 100, show_progress:bool = False):
-
+    def add_docs(self, docs: Union[Dict, List[Dict]],
+                 batch_size: int = 100,
+                 show_progress:bool = False):
+        """
+        Add docs to all sub indexes in batches
+        :param docs: a single doc OR a list of docs (dict)
+        :param batch_size: the batch size
+        :param show_progress: show progress in terminal
+        :return: a list of docs
+        """
         if type(docs) is not list:
             docs = [docs]
 
         mappings = self._load_mappings()
-
         # process by columns
         ids = []
         for batch in tqdm(chunks(docs, win_len=batch_size, stride_len=batch_size),
@@ -124,7 +154,9 @@ class Index(object):
             batch_ids = []
             for d in batch:
                 if FT.id not in d:
-                    d[FT.id] = str(uuid.uuid4())
+                    #d[FT.id] = uuid.uuid1().int >> 64  #64 bit unsigned int
+                    d[FT.id] = str(uuid.uuid1().int >> 64)
+
                 batch_ids.append(d[FT.id])
 
             # process data column by column
@@ -155,7 +187,6 @@ class Index(object):
                     if mapping['index'] == IT.BM25:
                         self.get_sub_index(field, mapping).add(annos, batch_ids)
 
-            # save ids here
             ids.extend(batch_ids)
 
         return ids
