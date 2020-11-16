@@ -1,11 +1,22 @@
 # R2Base: AI search engine
 
-## What is R2Base?
+### What is R2Base?
 R2Base a document store with semantic search and machine reading
 
-## Get Started
+### Examples
 
-    indexer.create_index('helloworld', {text: {type: text, index: bert}})
-    doc_id = indexer.add_doc(index, [doc1, doc2])
-    ranker.query(index, {'query': {text: china}}))
+Checkout
+    
+    example.py
+    wiki_example.py
+    
+### TODO
+
+- Use ONNX instead of pytorch for models
+- Use faster BERT tokenizer 
+- Support native SPARTA in tantivy
+- Support vector search using FASSIS
+- Better support basic operations, e.g. CRUD, filters etc.
+    
+ 
 
