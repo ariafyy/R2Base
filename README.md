@@ -17,6 +17,8 @@ Checkout
 - Support native SPARTA in tantivy
 - Support vector search using FASSIS
 - Better support basic operations, e.g. CRUD, filters etc.
+- Add better RESTful APIs
+- Package as Docker image
     
  
 
