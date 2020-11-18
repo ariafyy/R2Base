@@ -27,6 +27,9 @@ class KVIndex(IndexBase):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
+    def size(self):
+        return len(self.client)
+
     def set(self, key: str, value):
         if key is None:
             self.logger.warning("Try to save in redis with None")
