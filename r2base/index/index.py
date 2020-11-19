@@ -111,7 +111,7 @@ class Index(object):
         Normalize the mapping and create index for every sub-index
         :param mappings: mapping of the index
         """
-
+        self.logger.info("Creating index {}".format(self.index_id))
         # assign the internal field and overwrite
         mappings[FT.id] = {'type': FT.id}
 
@@ -132,6 +132,10 @@ class Index(object):
         return True
 
     def delete_index(self):
+        """
+        :return: delete the whole index from the disk completely
+        """
+        self.logger.info("Removing index {}".format(self.index_id))
         try:
             shutil.rmtree(self.index_dir)
         except Exception as e:

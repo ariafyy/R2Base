@@ -12,13 +12,14 @@ Checkout
     
 ### TODO
 
-- Use ONNX instead of pytorch for models
-- Use faster BERT tokenizer 
-- Support native SPARTA in tantivy
-- Support vector search using FASSIS
-- Better support basic operations, e.g. CRUD, filters etc.
+- Support basic operations, e.g. CRUD, filters etc.
+- Support native SPARTA in Tantivy
+- Support vector search using FASISS
+- Support reader 
 - Add better RESTful APIs
 - Package as Docker image
+- Use ONNX instead of pytorch for models
+- Use faster BERT tokenizer 
     
  
 
