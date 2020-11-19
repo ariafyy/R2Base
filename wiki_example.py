@@ -34,8 +34,7 @@ def wiki2doc(l):
 
 
 if __name__ == "__main__":
-    path = "/Users/tonyzhao/Documents/projects/soco-internal-demos/en-wiki/data/enwiki-2016-docs.jsonl"
-
+    path = "example/tiny_wiki.jsonl"
     indexer = Indexer()
     ranker = Ranker()
 
@@ -48,7 +47,7 @@ if __name__ == "__main__":
                  }
     }
     docs = []
-    chunk_size = 1000
+    chunk_size = 100
     index = 'wiki'
     indexer.create_index(index, mapping)
     cnt = 0
@@ -60,8 +59,5 @@ if __name__ == "__main__":
             if len(buffer) % chunk_size == 0:
                 indexer.add_docs(index, buffer, chunk_size, show_progress=True)
                 buffer = []
-
-            if cnt > 10000:
-                break
 
     print("DONE")
