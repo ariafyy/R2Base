@@ -259,7 +259,13 @@ class Index(object):
                     batch_size: int = 100,
                     show_progress: bool = False
                     ):
-        pass
+        doc_ids = []
+        for d in docs:
+            if FT.id not in docs:
+                raise Exception("Cannot update an document that has missing ID")
+            doc_ids.append(d[FT.id])
+        self.delete_docs(doc_ids)
+        self.add_docs(docs, batch_size, show_progress)
 
     def query(self, q: Dict):
         """
