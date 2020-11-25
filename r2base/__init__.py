@@ -7,6 +7,8 @@ class ServerType(object):
 class FieldType(object):
     id = '_id'
     keyword = 'keyword'
+    float = 'float'
+    integer = 'integer'
     vector = "vector"
     text = "text"
 

@@ -2,7 +2,8 @@ from typing import Dict, Union, List
 from r2base import FieldType as FT
 from r2base import IndexType as IT
 from r2base.index.inverted import BM25Index
-from r2base.index.keyvalue import FilterIndex, KVIndex
+from r2base.index.keyvalue import KVIndex
+from r2base.index.filter import FilterIndex
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks
 import os
@@ -11,6 +12,7 @@ import json
 import uuid
 import logging
 import shutil
+
 
 class Index(object):
 
@@ -29,7 +31,11 @@ class Index(object):
         # index-text
         return '{}-{}'.format(self.index_id, field)
 
-    def _load_mappings(self):
+    def _is_filter(self, field_type):
+        return field_type in {FT.keyword, FT.float, FT.integer}
+
+    @property
+    def mappings(self):
         """
         :return: Load mapping from the disk.
         """
@@ -41,6 +47,14 @@ class Index(object):
 
         self._mappings = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
         return self._mappings
+
+    @property
+    def filter_mappings(self):
+        """
+        :return: Load mapping from the disk.
+        """
+        return {field:mapping for field, mapping in self.mappings if self._is_filter(mapping['type'])}
+
 
     def _dump_mappings(self,  mappings: Dict):
         """
@@ -88,23 +102,26 @@ class Index(object):
 
     def _get_sub_index(self, field: str, mapping: Dict):
         if field not in self._clients:
-            sub_id = self._sub_index(field)
             if mapping['type'] == FT.id:
-                self._clients[field] = KVIndex(self.index_dir, sub_id, mapping)
+                self._clients[field] = KVIndex(self.index_dir, self._sub_index(FT.id), mapping)
 
-            elif mapping['type'] == FT.keyword:
-                self._clients[field] = FilterIndex(self.index_dir, sub_id, mapping)
+            elif field == IT.FILTER:
+                self._clients[field] = FilterIndex(self.index_dir, self._sub_index(field), mapping)
 
             elif mapping['type'] == FT.text and 'index' in mapping:
-
+                sub_id = self._sub_index(field)
                 if mapping['index'] == IT.BM25:
                     self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
 
         return self._clients.get(field)
 
     @property
-    def id_index(self):
-        return KVIndex(self.index_dir, self._sub_index(FT.id), {'type': FT.id})
+    def filter_index(self) -> FilterIndex:
+        return self._get_sub_index(IT.FILTER, self.filter_mappings)
+
+    @property
+    def id_index(self) -> KVIndex:
+        return self._get_sub_index(FT.id, {'type': FT.id})
 
     def create_index(self, mappings: Dict):
         """
@@ -160,50 +177,42 @@ class Index(object):
         if type(docs) is not list:
             docs = [docs]
 
-        mappings = self._load_mappings()
         # process by columns
         ids = []
         for batch in tqdm(chunks(docs, win_len=batch_size, stride_len=batch_size),
                           total=int(len(docs)/batch_size),
                           disable=not show_progress):
-            # set missing ids
+            # Insert raw data by ID. Set UID if it's missing
             batch_ids = []
             for d in batch:
                 if FT.id not in d:
-                    #d[FT.id] = uuid.uuid1().int >> 64  #64 bit unsigned int
                     d[FT.id] = str(uuid.uuid1().int >> 64)
 
+                self.id_index.set(d[FT.id], d)
+                ids.append(d[FT.id])
                 batch_ids.append(d[FT.id])
 
-            # process data column by column
-            for field, mapping in mappings.items():
-                batch_ids, batch_docs = [], []
+            # insert filter fields
+            self.filter_index.add(batch, batch_ids)
+
+            # insert each field that needs ranking
+            for field, mapping in self.mappings.items():
+                valid_ids, valid_docs = [], []
                 for d in batch:
                     if field not in d:
                         self.logger.info("{} is missing in document".format(field))
                         continue
-                    batch_ids.append(d[FT.id])
-                    batch_docs.append(d)
+                    valid_ids.append(d[FT.id])
+                    valid_docs.append(d)
 
-                # insert into the index by batch
-                if field == FT.id:
-                    for b_doc_id, b_d in zip(batch_ids, batch_docs):
-                        self._get_sub_index(field, mapping).set(b_doc_id, b_d)
+                if mapping['type'] == FT.text and 'index' in mapping:
 
-                elif mapping['type'] == FT.keyword:
-                    batch_values = [doc[field] for doc in batch_docs]
-                    self._get_sub_index(field, mapping).add(batch_values, batch_ids)
-
-                elif mapping['type'] == FT.text and 'index' in mapping:
-
-                    pipe = Pipeline(mappings[field]['processor'])
-                    kwargs = {'lang': mappings[field]['lang']}
-                    annos = pipe.run([b_d[field] for b_d in batch_docs], **kwargs)
+                    pipe = Pipeline(self.mappings[field]['processor'])
+                    kwargs = {'lang': self.mappings[field]['lang']}
+                    annos = pipe.run([b_d[field] for b_d in valid_docs], **kwargs)
 
                     if mapping['index'] == IT.BM25:
-                        self._get_sub_index(field, mapping).add(annos, batch_ids)
-
-            ids.extend(batch_ids)
+                        self._get_sub_index(field, mapping).add(annos, valid_ids)
 
         return ids
 
@@ -245,7 +254,7 @@ class Index(object):
         top_k = q.get('size', 10)
         ranks = {}
         filters = set()
-        mappings = self._load_mappings()
+        mappings = self.mappings
 
         for field, value in q_body.items():
             if mappings[field]['type'] == FT.id:

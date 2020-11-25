@@ -25,3 +25,6 @@ class IndexBase(object):
     def rank(self, *args, **kwargs):
         pass
 
+    def select(self, *args, **kwargs):
+        pass
+
