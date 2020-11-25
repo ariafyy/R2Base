@@ -2,6 +2,7 @@ from r2base.engine.indexer import Indexer
 from r2base.engine.ranker import Ranker
 import json
 from nltk import sent_tokenize
+import numpy as np
 
 
 def wiki2sents(l):
@@ -29,7 +30,7 @@ def wiki2sents(l):
 
 def wiki2doc(l):
     temp = json.loads(l)
-    docs = [{'title': temp[0], 'text': temp[1][0:1000]}]
+    docs = [{'title': temp[0], 'text': temp[1][0:1000], 'seed': np.random.randint(0, 1000)}]
     return docs
 
 
@@ -40,6 +41,7 @@ if __name__ == "__main__":
 
     mapping = {
         'title': {'type': 'keyword'},
+        'seed': {'type': 'integer'},
         'text': {'type': 'text',
                  'lang': 'en',
                  'index': 'bm25',

@@ -1,7 +1,7 @@
 from r2base.index import IndexBase
 from r2base import IndexType as IT
 from r2base import FieldType as FT
-import logging
+import json
 from typing import Dict, Union, List
 import os
 import sqlite3
@@ -12,11 +12,8 @@ class FilterIndex(IndexBase):
 
     def __init__(self, root_dir: str, index_id: str, mapping: Dict):
         super().__init__(root_dir, index_id, mapping)
-        self.fields = [key for key, mapping in self.mapping.items() if self._is_filter(mapping['type'])]
+        self.fields = list(mapping.keys())
         self._client = None
-
-    def _is_filter(self, field_type):
-        return field_type in {FT.keyword, FT.float, FT.integer}
 
     @property
     def client(self):
@@ -29,7 +26,7 @@ class FilterIndex(IndexBase):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
-        schema = ['key TEXT']
+        schema = ['_id TEXT']
         for field in self.fields:
             mapping = self.mapping[field]
             if mapping['type'] == FT.keyword:
@@ -38,6 +35,9 @@ class FilterIndex(IndexBase):
                 schema.append('{} REAL'.format(field))
             elif mapping['type'] == FT.integer:
                 schema.append('{} INTEGER'.format(field))
+            else:
+                raise Exception("Unknown field type {}".format(json.dumps(mapping)))
+
         schema = 'CREATE TABLE IF NOT EXISTS data {}'.format('({})'.format(','.join(schema)))
         c = self.client.cursor()
         c.execute(schema)
@@ -70,7 +70,8 @@ if __name__ == "__main__":
     root = '/Users/tonyzhao/Documents/projects/R2Base/_index'
     idx = 'kv-1'
 
-    c = FilterIndex('.', 'test', {'f1': {'type': "keyword"}, 'f2': {"type": "integer"},
+    c = FilterIndex('.', 'test', {'f1': {'type': "keyword"},
+                                  'f2': {"type": "integer"},
                                   'f3': {"type": "float"}})
 
     if not os.path.exists(os.path.join(c.work_dir, 'db.sqlite')):

@@ -1,12 +1,14 @@
 from typing import Dict, Union, List
 from r2base import FieldType as FT
 from r2base import IndexType as IT
+from r2base.index import IndexBase
 from r2base.index.inverted import BM25Index
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks
 import os
+from typing import Dict, Set
 from tqdm import tqdm
 import json
 import uuid
@@ -53,7 +55,7 @@ class Index(object):
         """
         :return: Load mapping from the disk.
         """
-        return {field:mapping for field, mapping in self.mappings if self._is_filter(mapping['type'])}
+        return {field:mapping for field, mapping in self.mappings.items() if self._is_filter(mapping['type'])}
 
 
     def _dump_mappings(self,  mappings: Dict):
@@ -67,7 +69,7 @@ class Index(object):
 
         return json.dump(mappings, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
 
-    def _fuse_results(self, ranks, filters, top_k) -> List[Dict]:
+    def _fuse_results(self, ranks: Dict, filters: Set, top_k: int) -> List[Dict]:
         """
         Given ranks and filters to create final top-K list
         :param ranks: retrieved docs with scores
@@ -100,9 +102,9 @@ class Index(object):
 
         return docs
 
-    def _get_sub_index(self, field: str, mapping: Dict):
+    def _get_sub_index(self, field: str, mapping: Dict) -> IndexBase:
         if field not in self._clients:
-            if mapping['type'] == FT.id:
+            if field == FT.id:
                 self._clients[field] = KVIndex(self.index_dir, self._sub_index(FT.id), mapping)
 
             elif field == IT.FILTER:
@@ -140,12 +142,20 @@ class Index(object):
 
                 if 'q_model_id' not in mapping and 'model_id' in mapping:
                     mapping['q_model_id'] = mapping['model_id']
-
-        for field, mapping in mappings.items():
-            self._get_sub_index(field, mapping).create_index()
-
         # dump the mapping to disk
         self._dump_mappings(mappings)
+
+        self.id_index.create_index()
+        self.filter_index.create_index()
+        for field, mapping in mappings.items():
+            if field == FT.id:
+                continue
+            if self._is_filter(mapping['type']):
+                continue
+            s_index = self._get_sub_index(field, mapping)
+            if s_index:
+                s_index.create_index()
+
         return True
 
     def delete_index(self):
@@ -240,41 +250,41 @@ class Index(object):
         :param index_id:
         :param q: query body
         {
-            query: {
+            match: {
                 text: xxx,
-                time: xxx,
-                day: xxx,
                 vec: {'vector': x, 'text': xxx}
             },
+            filter: "f1=XX AND size > 8"
             "size": 10
         }
         :return:
         """
-        q_body = q['query']
+        q_match = q.get('match', {})
+        q_filter = q.get('filter', None)
         top_k = q.get('size', 10)
-        ranks = {}
-        filters = set()
         mappings = self.mappings
 
-        for field, value in q_body.items():
-            if mappings[field]['type'] == FT.id:
-                filters = value if type(value) is list else [value]
-                continue
+        ranks = dict()
+        filters = set()
+        rank_k = min(10000, top_k*10)
+        for field, value in q_match.items():
             mapping = mappings[field]
-            if mapping['type'] == FT.keyword:
-                temp = self._get_sub_index(field, mapping).rank(value)
-                filters = filters.union(temp)
+            if field == FT.id or self._is_filter(mapping['type']):
+                self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
+                continue
 
-            elif mapping['type'] == FT.text and 'index' in mapping:
+            if mapping['type'] == FT.text and 'index' in mapping:
                 pipe = Pipeline(mappings[field]['q_processor'])
                 kwargs = {'lang': mappings[field]['lang'],
                           'model_id': mappings[field].get('q_model_id')}
                 anno_value = pipe.run(value, **kwargs)
 
                 if mapping['index'] == IT.BM25:
-                    temp = self._get_sub_index(field, mapping).rank(anno_value, top_k)
+                    temp = self._get_sub_index(field, mapping).rank(anno_value, rank_k)
                     for score, _id in temp:
                         ranks[_id] = score + ranks.get(_id, 0.0)
+        if q_filter:
+            filters = self.filter_index.select(q_filter)
 
         docs = self._fuse_results(ranks, filters, top_k)
         return docs
