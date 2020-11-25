@@ -57,13 +57,24 @@ class FilterIndex(IndexBase):
 
         return self.client.commit()
 
-    def select(self, query: str):
+    def select(self, query: str, valid_ids: Dict=None, size: int=10000):
         c = self.client.cursor()
-        query = 'SELECT * FROM data WHERE {}'.format(query)
-        c.execute(query)
-        res = c.fetchall()
-        results = {row[0] for row in res}
-        return list(results)
+        if valid_ids is None:
+            query = 'SELECT * FROM data WHERE {}'.format(query)
+        else:
+            keys = list(valid_ids.keys())
+            query = 'SELECT * FROM data WHERE {} AND _id IN ({})'.format(query, ','.join(keys))
+
+        cursor = c.execute(query)
+        results = set()
+        for row in cursor.fetchmany(size):
+            if valid_ids is None:
+                results.add(row[0])
+            else:
+                if row[0] in valid_ids:
+                    results.add(row[0])
+
+        return results
 
 
 if __name__ == "__main__":
