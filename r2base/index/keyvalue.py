@@ -31,11 +31,15 @@ class KVIndex(IndexBase):
     def size(self):
         return len(self.client)
 
-    def set(self, key: str, value):
+    def set(self, key: Union[List[str], str], value):
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None
-        self.client[key] = value
+        if type(key) is str:
+            self.client[key] = value
+        else:
+            for k, v in zip(key, value):
+                self.client[k] = v
 
     def get(self, key):
         if key is None:
@@ -52,12 +56,14 @@ class KVIndex(IndexBase):
                 res.append(self.get(key))
         return res
 
-    def delete(self, key):
+    def delete(self, key: Union[List[str], str]):
         if key is None:
-            self.logger.warning("Try to get in redis with None")
             return None
+        if type(key) is str:
+            return self.client.pop(key, None)
+        else:
+            return [self.client.pop(k, None) for k in key]
 
-        return self.client.pop(key, None)
 
 
 if __name__ == "__main__":
@@ -71,5 +77,8 @@ if __name__ == "__main__":
     c.set('1', '123')
     c.set('2', '456')
     c.set('3', '789')
+    print(c.size())
+    c.delete('3')
+    print(c.size())
     print(c.get('1'))
     print(c.sample(2))

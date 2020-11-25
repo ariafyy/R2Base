@@ -73,12 +73,32 @@ class BM25Index(IndexBase):
         schema = schema_builder.build()
         tantivy.Index(schema, self.work_dir)
 
-    def add(self, data: List[str], doc_ids: List[str]):
+    def add(self, data: Union[List[str], str], doc_ids: Union[List[str], str]):
+        assert type(data) == type(doc_ids)
+        if type(data) is str:
+            data = [data]
+            doc_ids = [doc_ids]
+
         for text, doc_id in zip(data, doc_ids):
             self.writer.add_document(tantivy.Document(text=text, _id=doc_id))
         self.writer.commit()
         self.client.reload()
         return True
+
+    def delete(self, doc_ids: Union[List[str], str]):
+        if type(doc_ids) is str:
+            doc_ids = [doc_ids]
+
+        for doc_id in doc_ids:
+            self.writer.delete_documents(field_name='_id', field_value=doc_id)
+
+        self.writer.commit()
+        self.client.reload()
+        return True
+
+    def size(self):
+        self._searcher = None
+        return self.searcher.num_docs
 
     def rank(self, text: str, top_k: int):
         """
@@ -101,4 +121,8 @@ if __name__ == "__main__":
     i.create_index()
     i.add('我 来 自 上海，叫做 赵天成', '1')
     i.add('我 来 自 北京，叫做 赵天成', '2')
+    i.add('我 来 自 北京，叫做 赵天成', '3')
+    print(i.size())
+    i.delete('1')
     print(i.rank('我', 2))
+    print(i.size())

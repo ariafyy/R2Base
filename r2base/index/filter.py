@@ -57,6 +57,19 @@ class FilterIndex(IndexBase):
 
         return self.client.commit()
 
+    def delete(self, doc_ids: Union[List[str], str]):
+        if type(doc_ids) is str:
+            doc_ids = [doc_ids]
+        query = 'DELETE FROM data where _id IN ({})'.format(','.join(doc_ids))
+        c = self.client.cursor()
+        c.execute(query)
+        self.client.commit()
+
+    def size(self):
+        c = self.client.cursor()
+        res = c.execute('SELECT COUNT(*) FROM data')
+        return res.fetchone()[0]
+
     def select(self, query: str, valid_ids: Dict=None, size: int=10000):
         c = self.client.cursor()
         if valid_ids is None:
@@ -93,4 +106,8 @@ if __name__ == "__main__":
         c.add([{'f2': 12, "f3": 5.3}, {'f2': 22, "f3": 1.1}],
               ['892', '555'])
 
+    print(c.size())
     print(c.select('f2>1'))
+    c.delete(['123', '456'])
+    print(c.size())
+    print(c.select('f1="haha"'))

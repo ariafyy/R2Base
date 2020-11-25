@@ -10,7 +10,6 @@ from r2base.utils import chunks
 import os
 from typing import Dict, Set
 from tqdm import tqdm
-import numpy as np
 import json
 import uuid
 import logging
@@ -154,6 +153,7 @@ class Index(object):
         # dump the mapping to disk
         self._dump_mappings(mappings)
 
+        # initialize the index
         self.id_index.create_index()
         self.filter_index.create_index()
         for field, mapping in mappings.items():
@@ -236,7 +236,14 @@ class Index(object):
         return ids
 
     def delete_docs(self, doc_ids: Union[str, List[str]]):
-        pass
+        # delete the doc from ID index, Filter Index and Every Rank index.
+        self.id_index.delete(doc_ids)
+        self.filter_index.delete(doc_ids)
+
+        for field, mapping in self.mappings.items():
+            if mapping['type'] == FT.text and 'index' in mapping:
+                self._get_sub_index(field, mapping).delete(doc_ids)
+
 
     def read_docs(self, doc_ids: Union[str, List[str]]):
         """
