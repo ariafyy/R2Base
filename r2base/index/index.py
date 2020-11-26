@@ -180,7 +180,7 @@ class Index(object):
     def get_mappings(self):
         return json.loads(json.dumps(self._mappings))
 
-    def size(self):
+    def size(self) -> int:
         return self.id_index.size()
 
     def add_docs(self, docs: Union[Dict, List[Dict]],
@@ -243,7 +243,6 @@ class Index(object):
         for field, mapping in self.mappings.items():
             if mapping['type'] == FT.text and 'index' in mapping:
                 self._get_sub_index(field, mapping).delete(doc_ids)
-
 
     def read_docs(self, doc_ids: Union[str, List[str]]):
         """

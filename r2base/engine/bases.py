@@ -15,7 +15,7 @@ class EngineBase(object):
 
     indexes = dict()
 
-    def get_index(self, index_id):
+    def get_index(self, index_id: str) -> Index:
         if index_id not in self.indexes:
             if len(self.indexes) > 100:
                 self.indexes.pop(list(self.indexes.keys())[0])
