@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Union
 
 
-class SearchResult(BaseModel):
+class Search(BaseModel):
     took: int
     ranks: List = []
     reads: List = []
@@ -12,6 +12,7 @@ class DocWrite(BaseModel):
     took: int
     doc_ids: List[str]
     action: str
+
 
 class DocRead(BaseModel):
     docs: Union[List[Dict], Dict]

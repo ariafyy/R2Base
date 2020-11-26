@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from starlette.requests import Request
-from r2base.http.schemas.payload import AddDocBody, CreateIndexBody
+from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
 from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead
 from r2base.engine.indexer import Indexer
 import time
@@ -12,7 +12,7 @@ router = APIRouter()
 async def post_predict(
         request: Request,
         index_id: str,
-        block_data: CreateIndexBody = None
+        block_data: WriteIndexBody = None
 ) -> IndexWrite:
     indexer: Indexer = request.app.state.model
     indexer.create_index(index_id, block_data.mapping)
@@ -56,7 +56,7 @@ async def post_predict(
 async def post_predict(
         request: Request,
         index_id: str,
-        block_data: AddDocBody = None
+        block_data: WriteDocBody = None
 ) -> DocWrite:
     s_time = time.time()
     indexer: Indexer = request.app.state.model
@@ -68,7 +68,7 @@ async def post_predict(
 async def post_predict(
         request: Request,
         index_id: str,
-        body: AddDocBody = None
+        body: WriteDocBody = None
 ) -> DocWrite:
     s_time = time.time()
     indexer: Indexer = request.app.state.model
