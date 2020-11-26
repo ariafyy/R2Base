@@ -17,7 +17,7 @@ class EngineBase(object):
 
     def get_index(self, index_id: str) -> Index:
         if index_id not in self.indexes:
-            if len(self.indexes) > 100:
+            if len(self.indexes) > EnvVar.MAX_NUM_INDEX:
                 self.indexes.pop(list(self.indexes.keys())[0])
 
             self.indexes[index_id] = Index(self.index_dir, index_id)

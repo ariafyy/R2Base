@@ -1,11 +1,9 @@
 from r2base.index import IndexBase
 from sqlitedict import SqliteDict
 from r2base import IndexType as IT
-from r2base import FieldType as FT
 import logging
 from typing import Dict, Union, List
 import os
-import sqlite3
 import numpy as np
 
 
@@ -63,7 +61,6 @@ class KVIndex(IndexBase):
             return self.client.pop(key, None)
         else:
             return [self.client.pop(k, None) for k in key]
-
 
 
 if __name__ == "__main__":

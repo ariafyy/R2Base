@@ -1,4 +1,5 @@
 from r2base.engine.bases import EngineBase
+from r2base.config import EnvVar
 import logging
 from typing import Union, List, Dict
 
@@ -24,7 +25,7 @@ class Indexer(EngineBase):
 
     def add_docs(self, index_id: str,
                  docs: Union[Dict, List[Dict]],
-                 batch_size: int = 100,
+                 batch_size: int = EnvVar.INDEX_BATCH_SIZE,
                  show_progress: bool = False):
         return self.get_index(index_id).add_docs(docs, batch_size, show_progress)
 
@@ -36,6 +37,6 @@ class Indexer(EngineBase):
 
     def update_docs(self, index_id: str,
                     docs: Union[Dict, List[Dict]],
-                    batch_size: int = 100,
+                    batch_size: int = EnvVar.INDEX_BATCH_SIZE,
                     show_progress: bool = False):
         return self.get_index(index_id).update_docs(docs, batch_size, show_progress)

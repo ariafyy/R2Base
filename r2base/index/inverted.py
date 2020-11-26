@@ -1,6 +1,6 @@
 from r2base.index import IndexBase
 from r2base import IndexType as IT
-from collections import defaultdict, Counter
+from collections import defaultdict
 from typing import List, Tuple, Union, Dict
 import numpy as np
 import os
