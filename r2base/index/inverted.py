@@ -96,7 +96,7 @@ class BM25Index(IndexBase):
         self.client.reload()
         return True
 
-    def size(self):
+    def size(self) -> int:
         self._searcher = None
         return self.searcher.num_docs
 

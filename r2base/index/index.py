@@ -257,14 +257,16 @@ class Index(object):
     def update_docs(self, docs: Union[Dict, List[Dict]],
                     batch_size: int = 100,
                     show_progress: bool = False
-                    ):
+                    ) -> List[str]:
         doc_ids = []
         for d in docs:
             if FT.id not in docs:
                 raise Exception("Cannot update an document that has missing ID")
             doc_ids.append(d[FT.id])
         self.delete_docs(doc_ids)
-        self.add_docs(docs, batch_size, show_progress)
+        ids = self.add_docs(docs, batch_size, show_progress)
+        return ids
+
 
     def query(self, q: Dict):
         """

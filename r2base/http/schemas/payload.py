@@ -3,17 +3,13 @@ from pydantic import BaseModel
 from typing import Dict
 
 
-class CreateIndexPayload(BaseModel):
-    index: str
+class CreateIndexBody(BaseModel):
     mapping: Dict
 
 
-class AddDocPayload(BaseModel):
+class AddDocBody(BaseModel):
     docs: List = []
-    index: str
     batch_size: int = 100
 
-
-class RankReadPayload(BaseModel):
-    index: str
+class RankReadBody(BaseModel):
     query: Dict = {}

@@ -26,7 +26,7 @@ class KVIndex(IndexBase):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
-    def size(self):
+    def size(self) -> int:
         return len(self.client)
 
     def set(self, key: Union[List[str], str], value):
@@ -46,7 +46,7 @@ class KVIndex(IndexBase):
 
         return self.client[key]
 
-    def sample(self, size):
+    def sample(self, size: int) -> List:
         random_ids = set(np.random.randint(0, len(self.client), size))
         res = []
         for key_id, key in enumerate(self.client.keys()):

@@ -65,7 +65,7 @@ class FilterIndex(IndexBase):
         c.execute(query)
         self.client.commit()
 
-    def size(self):
+    def size(self) -> int:
         c = self.client.cursor()
         res = c.execute('SELECT COUNT(*) FROM data')
         return res.fetchone()[0]

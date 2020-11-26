@@ -11,6 +11,7 @@ def _startup_indexer(app: FastAPI) -> None:
     model_instance = Indexer()
     app.state.model = model_instance
 
+
 def _startup_ranker(app: FastAPI) -> None:
     model_instance = Ranker()
     app.state.model = model_instance

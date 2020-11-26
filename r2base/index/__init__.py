@@ -16,7 +16,7 @@ class IndexBase(object):
         self.work_dir = os.path.join(self.root_dir, self.index_id)
         self._client = None
 
-    def size(self):
+    def size(self) -> int:
         pass
 
     def create_index(self, *args, **kwargs):

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Union
 
 
 class SearchResult(BaseModel):
@@ -8,11 +8,25 @@ class SearchResult(BaseModel):
     reads: List = []
 
 
-class DocWriteResult(BaseModel):
+class DocWrite(BaseModel):
     took: int
-    doc_ids: List = []
+    doc_ids: List[str]
+    action: str
+
+class DocRead(BaseModel):
+    docs: Union[List[Dict], Dict]
 
 
-class IndexWriteResult(BaseModel):
-    took: int
+class IndexWrite(BaseModel):
     index: str
+    action: str
+
+
+class IndexRead(BaseModel):
+    index: str
+    size: int
+
+
+class MappingRead(BaseModel):
+    index: str
+    mappings: Dict
