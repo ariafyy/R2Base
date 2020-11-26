@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class HeartbeatResult(BaseModel):
+class Heartbeat(BaseModel):
     is_alive: bool

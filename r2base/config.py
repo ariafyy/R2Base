@@ -7,7 +7,7 @@ class EnvVar(object):
     APP_NAME = "R2Base"
     root_dir = os.path.dirname(os.path.realpath(__file__)).replace('r2base', '')
 
-    default = yaml.load(open(os.path.join(root_dir, 'configs/default.yaml'), 'r'))
+    default = yaml.load(open(os.path.join(root_dir, 'configs/default.yaml'), 'r'), Loader=yaml.FullLoader)
     INDEX_DIR = os.environ.get('INDEX_DIR', default['INDEX_DIR'])
     MODEL_DIR = os.environ.get("MODEL_DIR", default['MODEL_DIR'])
     API_PREFIX = os.environ.get('API_PREFIX', default['API_PREFIX'])

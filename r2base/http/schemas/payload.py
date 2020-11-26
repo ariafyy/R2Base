@@ -8,9 +8,9 @@ class WriteIndexBody(BaseModel):
 
 
 class WriteDocBody(BaseModel):
-    docs: List = []
+    docs: List
     batch_size: int = 100
 
 
 class SearchBody(BaseModel):
-    query: Dict = {}
+    query: Dict
