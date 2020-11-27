@@ -1,5 +1,6 @@
 from typing import Callable
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from r2base.engine.indexer import Indexer
 from r2base.engine.ranker import Ranker
 from r2base import ServerType as ST
@@ -36,3 +37,10 @@ def stop_app_handler(app: FastAPI, mode: str) -> Callable:
         logger.info("Running app shutdown handler.")
         _shutdown_model(app)
     return shutdown
+
+
+async def exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={'detail': str(exc)},
+    )

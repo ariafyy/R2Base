@@ -15,7 +15,7 @@ class DocWrite(BaseModel):
 
 
 class DocRead(BaseModel):
-    docs: Union[List[Dict], Dict]
+    docs: Union[List, Dict, None]
 
 
 class IndexWrite(BaseModel):

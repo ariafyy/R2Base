@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 from starlette.requests import Request
 from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
 from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead
@@ -7,17 +7,15 @@ import time
 
 router = APIRouter()
 
-
-@router.post("/{index_id}", response_model=IndexWrite, name="Create Index")
+@router.post("/{index_id}", response_model=IndexWrite, name="Create Index", status_code=status.HTTP_201_CREATED)
 async def post_predict(
         request: Request,
         index_id: str,
-        block_data: WriteIndexBody = None
+        body: WriteIndexBody = None
 ) -> IndexWrite:
     indexer: Indexer = request.app.state.model
-    indexer.create_index(index_id, block_data.mapping)
-    resp = IndexWrite(index=index_id, action='created')
-    return resp
+    indexer.create_index(index_id, body.mappings)
+    return IndexWrite(index=index_id, action='created')
 
 
 @router.delete("/{index_id}", response_model=IndexWrite, name="Delete Index")
@@ -38,8 +36,7 @@ async def post_predict(
         index_id: str
 ) -> IndexRead:
     indexer: Indexer = request.app.state.model
-    size = indexer.size(index_id)
-    return IndexRead(index=index_id, size=size)
+    return IndexRead(index=index_id, size=indexer.size(index_id))
 
 
 @router.get("/{index_id}/mappings", response_model=MappingRead, name="Get Mapping")
@@ -48,11 +45,10 @@ async def post_predict(
         index_id: str
 ) -> MappingRead:
     indexer: Indexer = request.app.state.model
-    resp = MappingRead(mappings=indexer.get_mapping(index_id))
-    return resp
+    return MappingRead(index=index_id, mappings=indexer.get_mapping(index_id))
 
 
-@router.post("/{index_id}/docs", response_model=DocWrite, name="Add documents")
+@router.post("/{index_id}/docs", response_model=DocWrite, name="Add documents", status_code=status.HTTP_201_CREATED)
 async def post_predict(
         request: Request,
         index_id: str,

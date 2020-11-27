@@ -25,9 +25,6 @@ class Index(object):
         self.index_dir = os.path.join(root_dir, self.index_id)
         self._mappings = None
         self._clients = dict()
-        if not os.path.exists(self.index_dir):
-            self.logger.info("Created a new index dir {}".format(self.index_dir))
-            os.mkdir(self.index_dir)
 
     def _sub_index(self, field: str):
         # index-text
@@ -139,6 +136,10 @@ class Index(object):
         :param mappings: mapping of the index
         """
         self.logger.info("Creating index {}".format(self.index_id))
+        if not os.path.exists(self.index_dir):
+            self.logger.info("Created a new index dir {}".format(self.index_dir))
+            os.mkdir(self.index_dir)
+
         # assign the internal field and overwrite
         mappings[FT.id] = {'type': FT.id}
 
@@ -178,7 +179,7 @@ class Index(object):
             self.logger.info(e)
 
     def get_mappings(self):
-        return json.loads(json.dumps(self._mappings))
+        return json.loads(json.dumps(self.mappings))
 
     def size(self) -> int:
         return self.id_index.size()

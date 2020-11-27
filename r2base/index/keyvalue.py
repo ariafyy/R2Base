@@ -39,12 +39,12 @@ class KVIndex(IndexBase):
             for k, v in zip(key, value):
                 self.client[k] = v
 
-    def get(self, key):
+    def get(self, key) -> Union[None, Dict]:
         if key is None:
             self.logger.warning("Try to get in redis with None")
             return None
 
-        return self.client[key]
+        return self.client.get(key, None)
 
     def sample(self, size: int) -> List:
         random_ids = set(np.random.randint(0, len(self.client), size))

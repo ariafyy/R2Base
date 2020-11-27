@@ -4,7 +4,7 @@ from typing import Dict
 
 
 class WriteIndexBody(BaseModel):
-    mapping: Dict
+    mappings: Dict
 
 
 class WriteDocBody(BaseModel):
