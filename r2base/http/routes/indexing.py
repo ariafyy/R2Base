@@ -13,7 +13,7 @@ async def post_predict(
         index_id: str,
         body: WriteIndexBody = None
 ) -> IndexWrite:
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     indexer.create_index(index_id, body.mappings)
     return IndexWrite(index=index_id, action='created')
 
@@ -24,7 +24,7 @@ async def post_predict(
         index_id: str
 ) -> IndexWrite:
     s_time = time.time()
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     indexer.delete_index(index_id)
     resp = IndexWrite(index=index_id, action='deleted')
     return resp
@@ -35,7 +35,7 @@ async def post_predict(
         request: Request,
         index_id: str
 ) -> IndexRead:
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     return IndexRead(index=index_id, size=indexer.size(index_id))
 
 
@@ -44,7 +44,7 @@ async def post_predict(
         request: Request,
         index_id: str
 ) -> MappingRead:
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     return MappingRead(index=index_id, mappings=indexer.get_mapping(index_id))
 
 
@@ -55,7 +55,7 @@ async def post_predict(
         block_data: WriteDocBody = None
 ) -> DocWrite:
     s_time = time.time()
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     doc_ids = indexer.add_docs(index_id, block_data.docs, block_data.batch_size)
     return DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='added')
 
@@ -67,7 +67,7 @@ async def post_predict(
         body: WriteDocBody = None
 ) -> DocWrite:
     s_time = time.time()
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     doc_ids = indexer.update_docs(index_id, body.docs, body.batch_size)
     return DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='updated')
 
@@ -79,7 +79,7 @@ async def post_predict(
         doc_ids: str,
 ) -> DocWrite:
     s_time = time.time()
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     if ',' in doc_ids:
         doc_ids = doc_ids.split(',')
     else:
@@ -98,7 +98,7 @@ async def post_predict(
     if ',' in doc_ids:
         doc_ids = doc_ids.split(',')
 
-    indexer: Indexer = request.app.state.model
+    indexer: Indexer = request.app.state.indexer
     docs = indexer.read_docs(index_id, doc_ids)
     resp = DocRead(docs=docs)
     return resp
