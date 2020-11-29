@@ -1,40 +1,62 @@
 import numpy as np
 from r2base.index import IndexBase
 from r2base import IndexType as IT
+import faiss
+from typing import Dict, Union, List
+import os
 
 
 class VectorIndex(IndexBase):
     type = IT.VECTOR
 
-    def __init__(self, index_id, num_dim):
-        self.index_id = index_id
-        self.num_dim = num_dim
+    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+        super().__init__(root_dir, index_id, mapping)
+        self._num_dim = mapping['num_dim']
         self._index = None
-        self._ids = []
+        self.ivf_th = 10000
 
-    def _norm(self, A):
-        return A / np.linalg.norm(A, ord=2, axis=1, keepdims=True)
+    def _commit(self):
+        faiss.write_index(self._index, os.path.join(self.work_dir, 'data.index'))
 
-    def _cosine(self, A, B):
-        A_norm_ext = self._norm(A)
-        B_norm_ext = self._norm(B)
-        return A_norm_ext.dot(B_norm_ext.T).clip(min=0).squeeze(1) / 2
+    @property
+    def index(self) -> faiss.Index:
+        if self._index is None:
+            self._index = faiss.read_index(os.path.join(self.work_dir, 'data.index'))
+        return self._index
 
-    def add(self, vector, key):
+    def create_index(self):
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
+            self.logger.info("Create data folder at {}".format(self.work_dir))
+            index = faiss.IndexFlatIP(self._num_dim)
+            faiss.write_index(index, os.path.join(self.work_dir, 'data.index'))
+        else:
+            raise Exception("Index {} already existed".format(self.index_id))
+
+    def size(self) -> int:
+        return self.index.ntotal
+
+    def add(self, vector: np.array, doc_ids: Union[List[str], str]):
         if len(vector.shape) == 1:
             vector = vector.reshape(1, -1)
+        if type(doc_ids) is str:
+            doc_ids = [doc_ids]
 
-        assert vector.shape[1] == self.num_dim
+        assert vector.shape[1] == self._num_dim
+        assert vector.shape[0] == len(doc_ids)
+        # normalize the vector
+        vector = vector.astype('float32')
+        faiss.normalize_L2(vector)
+        self.index.add(vector)
+        self._commit()
 
-        if self._index is None:
-            self._index = vector
-        else:
-            self._index = np.concatenate([self._index, vector], axis=0)
+    def delete(self, doc_ids: Union[List[str], str]) -> None:
+        if type(doc_ids) is str:
+            doc_ids = [doc_ids]
 
-        self._ids.append(key)
-        return self._index.shape
+        self.index.remove_ids(doc_ids)
 
-    def rank(self, vector, top_k):
+    def rank(self, vector: np.array, top_k: int):
         """
         :param vector:
         :param top_k:
@@ -42,10 +64,20 @@ class VectorIndex(IndexBase):
         """
         if len(vector.shape) == 1:
             vector = vector.reshape(1, -1)
-        scores = self._cosine(self._index, vector)
-        sort_ids = np.argsort(scores*-1)
-        res = []
-        for idx in sort_ids:
-            res.append((scores[idx], self._ids[idx]))
 
-        return res[0:top_k]
+        assert vector.shape[0] == 1
+        vector = vector.astype('float32')
+        faiss.normalize_L2(vector)
+        dists, indices = self.index.search(vector, top_k)
+        res = [(dists[0, i], indices[0, i]) for i in range(dists.shape[1])]
+        return res
+
+if __name__ == '__main__':
+    index = VectorIndex('.', 'test', {'num_dim': 800})
+    index.create_index()
+
+    for i in range(100):
+        print(i)
+        index.add(np.random.random(800*100).reshape(100, 800), ['1']*100)
+    print(index.size())
+    print(index.rank(np.random.random(800*1).reshape(1, 800), 10))
