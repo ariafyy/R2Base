@@ -28,7 +28,8 @@ class VectorIndex(IndexBase):
         if not os.path.exists(self.work_dir):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
-            index = faiss.IndexFlatIP(self._num_dim)
+        if not os.path.exists(os.path.join(self.work_dir, 'data.index')):
+            index = faiss.index_factory(self._num_dim, 'IDMap,L2norm,Flat', faiss.METRIC_INNER_PRODUCT)
             faiss.write_index(index, os.path.join(self.work_dir, 'data.index'))
         else:
             raise Exception("Index {} already existed".format(self.index_id))
@@ -46,8 +47,7 @@ class VectorIndex(IndexBase):
         assert vector.shape[0] == len(doc_ids)
         # normalize the vector
         vector = vector.astype('float32')
-        faiss.normalize_L2(vector)
-        self.index.add(vector)
+        self.index.add_with_ids(vector, np.array([int(x) for x in doc_ids]))
         self._commit()
 
     def delete(self, doc_ids: Union[List[str], str]) -> None:
@@ -67,17 +67,19 @@ class VectorIndex(IndexBase):
 
         assert vector.shape[0] == 1
         vector = vector.astype('float32')
-        faiss.normalize_L2(vector)
         dists, indices = self.index.search(vector, top_k)
         res = [(dists[0, i], indices[0, i]) for i in range(dists.shape[1])]
         return res
 
+
 if __name__ == '__main__':
+    import uuid
     index = VectorIndex('.', 'test', {'num_dim': 800})
     index.create_index()
 
     for i in range(100):
         print(i)
-        index.add(np.random.random(800*100).reshape(100, 800), ['1']*100)
+        ids = [uuid.uuid1().int >> 64 for i in range(100)]
+        index.add(np.random.random(800*100).reshape(100, 800),ids)
     print(index.size())
     print(index.rank(np.random.random(800*1).reshape(1, 800), 10))

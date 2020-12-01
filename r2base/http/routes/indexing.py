@@ -23,7 +23,6 @@ async def post_predict(
         request: Request,
         index_id: str
 ) -> IndexWrite:
-    s_time = time.time()
     indexer: Indexer = request.app.state.indexer
     indexer.delete_index(index_id)
     resp = IndexWrite(index=index_id, action='deleted')
@@ -84,6 +83,7 @@ async def post_predict(
         doc_ids = doc_ids.split(',')
     else:
         doc_ids = [doc_ids]
+    doc_ids = [int(x) for x in doc_ids]
     indexer.delete_docs(index_id, doc_ids)
     resp = DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='deleted')
     return resp
@@ -97,7 +97,10 @@ async def post_predict(
 ) -> DocRead:
     if ',' in doc_ids:
         doc_ids = doc_ids.split(',')
+    else:
+        doc_ids = [doc_ids]
 
+    doc_ids = [int(x) for x in doc_ids]
     indexer: Indexer = request.app.state.indexer
     docs = indexer.read_docs(index_id, doc_ids)
     resp = DocRead(docs=docs)

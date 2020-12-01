@@ -13,11 +13,13 @@ if __name__ == "__main__":
             q = query
             filter = None
 
-        res = ranker.query(index, {'match': {'text': q},
+        res = ranker.query(index, {'read': {'content': {'q': 'what is the main event?', 'model_id': 'xx'},
+                                            'header': {'q': 'what is the date?', 'model_id': 'yy'}},
+                                   'match': {'text': q},
                                    'filter': filter,
                                    'size': 5})
         print('{} results'.format(len(res)))
         if len(res) > 0:
-            print(res[0]['score'], res[0]['_source']['title'], res[0]['_source']['text'])
+            print(res[0]['score'], res[0]['_source']['title'], res[0]['_source'])
         else:
             print("No result")

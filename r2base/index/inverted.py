@@ -62,19 +62,18 @@ class BM25Index(IndexBase):
 
         return self._searcher
 
-    def create_index(self):
+    def create_index(self) -> None:
         if not os.path.exists(self.work_dir):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
         schema_builder = tantivy.SchemaBuilder()
         schema_builder.add_text_field("text", stored=False)
-        schema_builder.add_text_field("_id", stored=True, index_option='basic')
+        schema_builder.add_integer_field("_id", stored=True, indexed=True)
         schema = schema_builder.build()
         tantivy.Index(schema, self.work_dir)
 
-    def add(self, data: Union[List[str], str], doc_ids: Union[List[str], str]):
-        assert type(data) == type(doc_ids)
+    def add(self, data: Union[List[str], str], doc_ids: Union[List[int], int]) -> None:
         if type(data) is str:
             data = [data]
             doc_ids = [doc_ids]
@@ -83,10 +82,9 @@ class BM25Index(IndexBase):
             self.writer.add_document(tantivy.Document(text=text, _id=doc_id))
         self.writer.commit()
         self.client.reload()
-        return True
 
-    def delete(self, doc_ids: Union[List[str], str]):
-        if type(doc_ids) is str:
+    def delete(self, doc_ids: Union[List[int], int]) -> None:
+        if type(doc_ids) is int:
             doc_ids = [doc_ids]
 
         for doc_id in doc_ids:
@@ -94,13 +92,12 @@ class BM25Index(IndexBase):
 
         self.writer.commit()
         self.client.reload()
-        return True
 
     def size(self) -> int:
         self._searcher = None
         return self.searcher.num_docs
 
-    def rank(self, text: str, top_k: int):
+    def rank(self, text: str, top_k: int) -> List[Tuple[float, int]]:
         """
         :param tokens: tokenized query
         :return:
@@ -112,17 +109,14 @@ class BM25Index(IndexBase):
 
 
 if __name__ == "__main__":
-    root = '/Users/tonyzhao/Documents/projects/R2Base/_index'
+    root = '.'
     idx = 'test-3'
-    if not os.path.exists(os.path.join(root, idx)):
-        os.mkdir(os.path.join(root, idx))
-
-    i = BM25Index(root, 'tttt', {})
+    i = BM25Index(root, idx, {})
     i.create_index()
-    i.add('我 来 自 上海，叫做 赵天成', '1')
-    i.add('我 来 自 北京，叫做 赵天成', '2')
-    i.add('我 来 自 北京，叫做 赵天成', '3')
+    i.add('我 来 自 上海，叫做 赵天成', 1)
+    i.add('我 来 自 北京，叫做 赵天成', 2)
+    i.add('我 来 自 北京，叫做 赵天成', 3)
     print(i.size())
-    i.delete('1')
+    i.delete(1)
     print(i.rank('我', 2))
     print(i.size())

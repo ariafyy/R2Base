@@ -1,4 +1,5 @@
 from typing import Sequence
+import uuid
 
 
 def chunks(l: Sequence, win_len: int, stride_len: int):
@@ -13,3 +14,7 @@ def chunks(l: Sequence, win_len: int, stride_len: int):
 
         s_id = s_id + stride_len
         e_id = min(s_id + win_len, len(l))
+
+
+def get_uid() -> int:
+    return int(uuid.uuid1().int >> 64)

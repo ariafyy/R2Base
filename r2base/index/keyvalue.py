@@ -2,7 +2,7 @@ from r2base.index import IndexBase
 from sqlitedict import SqliteDict
 from r2base import IndexType as IT
 import logging
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Any
 import os
 import numpy as np
 
@@ -21,7 +21,7 @@ class KVIndex(IndexBase):
             self._client = SqliteDict(os.path.join(self.work_dir, 'db.sqlite'), autocommit=True)
         return self._client
 
-    def create_index(self):
+    def create_index(self) -> None:
         if not os.path.exists(self.work_dir):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
@@ -29,19 +29,19 @@ class KVIndex(IndexBase):
     def size(self) -> int:
         return len(self.client)
 
-    def set(self, key: Union[List[str], str], value):
+    def set(self, key: Union[List[int], int], value) -> None:
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None
-        if type(key) is str:
+        if type(key) is int:
             self.client[key] = value
         else:
             for k, v in zip(key, value):
                 self.client[k] = v
 
-    def get(self, key) -> Union[None, Dict]:
+    def get(self, key: int) -> Union[None, Dict]:
         if key is None:
-            self.logger.warning("Try to get in redis with None")
+            self.logger.warning("KV does not support None key")
             return None
 
         return self.client.get(key, None)
@@ -54,10 +54,11 @@ class KVIndex(IndexBase):
                 res.append(self.get(key))
         return res
 
-    def delete(self, key: Union[List[str], str]):
+    def delete(self, key: Union[List[int], int]) -> Any:
         if key is None:
             return None
-        if type(key) is str:
+
+        if type(key) is int:
             return self.client.pop(key, None)
         else:
             return [self.client.pop(k, None) for k in key]
@@ -71,11 +72,11 @@ if __name__ == "__main__":
 
     c = KVIndex('.', idx, {})
     c.create_index()
-    c.set('1', '123')
-    c.set('2', '456')
-    c.set('3', '789')
+    c.set(1, '123')
+    c.set(2, '456')
+    c.set(3, '789')
     print(c.size())
-    c.delete('3')
+    c.delete(4)
     print(c.size())
-    print(c.get('1'))
+    print(c.get(1))
     print(c.sample(2))

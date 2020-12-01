@@ -6,12 +6,11 @@ from r2base.index.inverted import BM25Index
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
 from r2base.processors.pipeline import Pipeline
-from r2base.utils import chunks
+from r2base.utils import chunks, get_uid
 import os
 from typing import Dict, Set
 from tqdm import tqdm
 import json
-import uuid
 import logging
 import shutil
 
@@ -206,7 +205,7 @@ class Index(object):
             batch_ids = []
             for d in batch:
                 if FT.id not in d:
-                    d[FT.id] = str(uuid.uuid1().int >> 64)
+                    d[FT.id] = get_uid()
 
                 self.id_index.set(d[FT.id], d)
                 ids.append(d[FT.id])
@@ -236,7 +235,7 @@ class Index(object):
 
         return ids
 
-    def delete_docs(self, doc_ids: Union[str, List[str]]):
+    def delete_docs(self, doc_ids: Union[int, List[int]]):
         # delete the doc from ID index, Filter Index and Every Rank index.
         self.id_index.delete(doc_ids)
         self.filter_index.delete(doc_ids)
@@ -245,12 +244,12 @@ class Index(object):
             if mapping['type'] == FT.text and 'index' in mapping:
                 self._get_sub_index(field, mapping).delete(doc_ids)
 
-    def read_docs(self, doc_ids: Union[str, List[str]]):
+    def read_docs(self, doc_ids: Union[int, List[int]]):
         """
         :param doc_ids: read docs give doc IDs
         :return:
         """
-        if type(doc_ids) is str:
+        if type(doc_ids) is int:
             return self.id_index.get(doc_ids)
         else:
             return [self.id_index.get(dix) for dix in doc_ids]
@@ -267,7 +266,6 @@ class Index(object):
         self.delete_docs(doc_ids)
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
-
 
     def query(self, q: Dict):
         """
@@ -312,7 +310,7 @@ class Index(object):
                         ranks[_id] = score + ranks.get(_id, 0.0)
 
         if do_filter:
-            filters = self.filter_index.select(q_filter, valid_ids=ranks)
+            filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
 
         docs = self._fuse_results(do_rank, do_filter, ranks, filters, top_k)
         return docs

@@ -41,7 +41,6 @@ if __name__ == "__main__":
 
     mapping = {
         'title': {'type': 'keyword'},
-        'seed': {'type': 'integer'},
         'text': {'type': 'text',
                  'lang': 'en',
                  'index': 'bm25',

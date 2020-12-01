@@ -10,7 +10,7 @@ class Search(BaseModel):
 
 class DocWrite(BaseModel):
     took: int
-    doc_ids: List[str]
+    doc_ids: List[int]
     action: str
 
 
