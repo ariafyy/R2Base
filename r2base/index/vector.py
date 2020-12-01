@@ -2,7 +2,7 @@ import numpy as np
 from r2base.index import IndexBase
 from r2base import IndexType as IT
 import faiss
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Tuple
 import os
 
 
@@ -56,7 +56,7 @@ class VectorIndex(IndexBase):
 
         self.index.remove_ids(doc_ids)
 
-    def rank(self, vector: np.array, top_k: int):
+    def rank(self, vector: np.array, top_k: int) -> List[Tuple[float, int]]:
         """
         :param vector:
         :param top_k:

@@ -43,7 +43,7 @@ class FilterIndex(IndexBase):
         c.execute(schema)
         self.client.commit()
 
-    def add(self, data: Union[List[Dict], Dict], doc_ids: Union[List[int], int]):
+    def add(self, data: Union[List[Dict], Dict], doc_ids: Union[List[int], int]) -> None:
         c = self.client.cursor()
         sql = 'INSERT INTO data VALUES ({})'.format(','.join(['?']*(len(self.fields)+1)))
 
@@ -55,7 +55,7 @@ class FilterIndex(IndexBase):
                 row = [doc_id] + [d.get(f, None) for f in self.fields]
                 c.execute(sql, row)
 
-        return self.client.commit()
+        self.client.commit()
 
     def delete(self, doc_ids: Union[List[int], int]):
         if type(doc_ids) is int:

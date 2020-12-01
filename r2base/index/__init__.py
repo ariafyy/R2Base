@@ -1,5 +1,4 @@
-from typing import Dict
-import tantivy
+from typing import Dict, List, Tuple
 import os
 import logging
 
@@ -19,16 +18,16 @@ class IndexBase(object):
     def size(self) -> int:
         pass
 
-    def create_index(self, *args, **kwargs):
+    def create_index(self, *args, **kwargs) -> None:
         pass
 
-    def add(self, *args, **kwargs):
+    def add(self, *args, **kwargs) -> None:
         pass
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args, **kwargs) -> None:
         pass
 
-    def rank(self, *args, **kwargs):
+    def rank(self, *args, **kwargs) -> List[Tuple[float, int]]:
         pass
 
     def select(self, *args, **kwargs):

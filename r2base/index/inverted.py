@@ -16,7 +16,6 @@ class InvertedIndex(IndexBase):
     def add(self, scores: List[Tuple], doc_id: str):
         for t, s in scores:
             self._inverted_index[t][doc_id] = np.float16(s)
-        return True
 
     def rank(self, tokens: Union[List[str], List[Tuple]], top_k: int):
         temp = defaultdict(float)
