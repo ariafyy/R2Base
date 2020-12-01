@@ -50,11 +50,12 @@ class VectorIndex(IndexBase):
         self.index.add_with_ids(vector, np.array([int(x) for x in doc_ids]))
         self._commit()
 
-    def delete(self, doc_ids: Union[List[str], str]) -> None:
-        if type(doc_ids) is str:
+    def delete(self, doc_ids: Union[List[int], int]) -> None:
+        if type(doc_ids) is int:
             doc_ids = [doc_ids]
 
-        self.index.remove_ids(doc_ids)
+        self.index.remove_ids(np.array(doc_ids))
+        self._commit()
 
     def rank(self, vector: np.array, top_k: int) -> List[Tuple[float, int]]:
         """
@@ -75,11 +76,14 @@ class VectorIndex(IndexBase):
 if __name__ == '__main__':
     import uuid
     index = VectorIndex('.', 'test', {'num_dim': 800})
-    index.create_index()
+    #index.create_index()
 
-    for i in range(100):
-        print(i)
-        ids = [uuid.uuid1().int >> 64 for i in range(100)]
-        index.add(np.random.random(800*100).reshape(100, 800),ids)
+    #for i in range(100):
+    #    print(i)
+    #    ids = [i*100+j for j in range(100)]
+    #    index.add(np.random.random(800*100).reshape(100, 800),ids)
+    print(index.size())
+    index.delete([1,2,33])
+    index.delete(3)
     print(index.size())
     print(index.rank(np.random.random(800*1).reshape(1, 800), 10))
