@@ -5,6 +5,7 @@ from r2base.index import IndexBase
 from r2base.index.inverted import BM25Index
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
+from r2base.index.vector import VectorIndex
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks, get_uid
 import os
@@ -118,6 +119,12 @@ class Index(object):
                 sub_id = self._sub_index(field)
                 if mapping['index'] == IT.BM25:
                     self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
+                elif mapping['index'] == IT.VECTOR:
+                    self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
+
+            elif mapping['type'] == FT.vector:
+                sub_id = self._sub_index(field)
+                self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
         return self._clients.get(field)
 
@@ -231,6 +238,10 @@ class Index(object):
                     if mapping['index'] == IT.BM25:
                         self._get_sub_index(field, mapping).add(annos, valid_ids)
 
+                elif mapping['type'] == FT.vector:
+                    vectors = [b_d[field] for b_d in valid_docs],
+                    self._get_sub_index(field, mapping).add(vectors, valid_ids)
+
         return ids
 
     def delete_docs(self, doc_ids: Union[int, List[int]]) -> None:
@@ -239,7 +250,8 @@ class Index(object):
         self.filter_index.delete(doc_ids)
 
         for field, mapping in self.mappings.items():
-            if mapping['type'] == FT.text and 'index' in mapping:
+            if (mapping['type'] == FT.text and 'index' in mapping) or \
+                    mapping['type'] == FT.vector:
                 self._get_sub_index(field, mapping).delete(doc_ids)
 
     def read_docs(self, doc_ids: Union[int, List[int]]) -> Union[Dict, List]:
@@ -306,6 +318,11 @@ class Index(object):
                     temp = self._get_sub_index(field, mapping).rank(anno_value, rank_k)
                     for score, _id in temp:
                         ranks[_id] = score + ranks.get(_id, 0.0)
+
+            elif mapping['type'] == FT.vector:
+                temp = self._get_sub_index(field, mapping).rank(value, rank_k)
+                for score, _id in temp:
+                    ranks[_id] = score + ranks.get(_id, 0.0)
 
         if do_filter:
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))

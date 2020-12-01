@@ -84,6 +84,6 @@ if __name__ == '__main__':
     #    index.add(np.random.random(800*100).reshape(100, 800),ids)
     print(index.size())
     index.delete([1,2,33])
-    index.delete(3)
+    index.delete([5061])
     print(index.size())
     print(index.rank(np.random.random(800*1).reshape(1, 800), 10))
