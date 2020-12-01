@@ -129,7 +129,7 @@ class Index(object):
     def id_index(self) -> KVIndex:
         return self._get_sub_index(FT.id, {'type': FT.id})
 
-    def create_index(self, mappings: Dict):
+    def create_index(self, mappings: Dict) -> None:
         """
         Normalize the mapping and create index for every sub-index
         :param mappings: mapping of the index
@@ -165,9 +165,7 @@ class Index(object):
             if s_index:
                 s_index.create_index()
 
-        return True
-
-    def delete_index(self):
+    def delete_index(self) -> None:
         """
         :return: delete the whole index from the disk completely
         """
@@ -177,7 +175,7 @@ class Index(object):
         except Exception as e:
             self.logger.info(e)
 
-    def get_mappings(self):
+    def get_mappings(self) -> Dict:
         return json.loads(json.dumps(self.mappings))
 
     def size(self) -> int:
@@ -185,7 +183,7 @@ class Index(object):
 
     def add_docs(self, docs: Union[Dict, List[Dict]],
                  batch_size: int = 100,
-                 show_progress:bool = False):
+                 show_progress:bool = False) -> List[int]:
         """
         Add docs to all sub indexes in batches
         :param docs: a single doc OR a list of docs (dict)
@@ -235,7 +233,7 @@ class Index(object):
 
         return ids
 
-    def delete_docs(self, doc_ids: Union[int, List[int]]):
+    def delete_docs(self, doc_ids: Union[int, List[int]]) -> None:
         # delete the doc from ID index, Filter Index and Every Rank index.
         self.id_index.delete(doc_ids)
         self.filter_index.delete(doc_ids)
@@ -244,7 +242,7 @@ class Index(object):
             if mapping['type'] == FT.text and 'index' in mapping:
                 self._get_sub_index(field, mapping).delete(doc_ids)
 
-    def read_docs(self, doc_ids: Union[int, List[int]]):
+    def read_docs(self, doc_ids: Union[int, List[int]]) -> Union[Dict, List]:
         """
         :param doc_ids: read docs give doc IDs
         :return:
@@ -257,7 +255,7 @@ class Index(object):
     def update_docs(self, docs: Union[Dict, List[Dict]],
                     batch_size: int = 100,
                     show_progress: bool = False
-                    ) -> List[str]:
+                    ) -> List[int]:
         doc_ids = []
         for d in docs:
             if FT.id not in docs:
@@ -267,7 +265,7 @@ class Index(object):
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
-    def query(self, q: Dict):
+    def query(self, q: Dict) -> List[Dict]:
         """
         :param index_id:
         :param q: query body
