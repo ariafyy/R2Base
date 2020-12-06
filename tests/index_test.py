@@ -70,6 +70,7 @@ def test_vector():
     index.add([3, 2, 1], 2)
     index.add([[1, 2, 3], [4, 5, 6]], [3, 4])
     assert index.size() == 4
-    assert index.rank([1,2, 3], 10)[0][0] == pytest.approx(1.0)
+    assert index.rank([1, 2, 3], 10)[0][0] == pytest.approx(1.0)
     index.delete([1])
     assert index.size() == 3
+    index.delete_index()
