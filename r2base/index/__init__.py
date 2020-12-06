@@ -21,6 +21,9 @@ class IndexBase(object):
     def create_index(self, *args, **kwargs) -> None:
         pass
 
+    def delete_index(self, *args, **kwargs) -> None:
+        pass
+
     def add(self, *args, **kwargs) -> None:
         pass
 

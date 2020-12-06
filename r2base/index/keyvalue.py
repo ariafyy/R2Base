@@ -6,7 +6,6 @@ from typing import Dict, Union, List, Any
 import os
 import numpy as np
 
-
 class KVIndex(IndexBase):
     type = IT.LOOKUP
     logger = logging.getLogger(__name__)
@@ -25,6 +24,14 @@ class KVIndex(IndexBase):
         if not os.path.exists(self.work_dir):
             os.mkdir(self.work_dir)
             self.logger.info("Create data folder at {}".format(self.work_dir))
+
+    def delete_index(self) -> None:
+        self.client.close()
+        try:
+            os.remove(os.path.join(self.work_dir, 'db.sqlite'))
+            os.removedirs(self.work_dir)
+        except Exception as e:
+            self.logger.error(e)
 
     def size(self) -> int:
         return len(self.client)

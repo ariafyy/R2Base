@@ -177,6 +177,13 @@ class Index(object):
         :return: delete the whole index from the disk completely
         """
         self.logger.info("Removing index {}".format(self.index_id))
+        # first delete each sub-index
+        for field, index in self._clients.items():
+            try:
+                index.delete_index()
+            except Exception as e:
+                self.logger.error(e)
+        # remove the whole folder
         try:
             shutil.rmtree(self.index_dir)
         except Exception as e:

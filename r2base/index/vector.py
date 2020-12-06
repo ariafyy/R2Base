@@ -37,17 +37,17 @@ class VectorIndex(IndexBase):
     def size(self) -> int:
         return self.index.ntotal
 
-    def add(self, vector: np.array, doc_ids: Union[List[str], str]):
+    def add(self, vector: np.array, doc_ids: Union[List[int], int]):
         if len(vector.shape) == 1:
             vector = vector.reshape(1, -1)
-        if type(doc_ids) is str:
+        if type(doc_ids) is int:
             doc_ids = [doc_ids]
 
         assert vector.shape[1] == self._num_dim
         assert vector.shape[0] == len(doc_ids)
         # normalize the vector
         vector = vector.astype('float32')
-        self.index.add_with_ids(vector, np.array([int(x) for x in doc_ids]))
+        self.index.add_with_ids(vector, np.array(doc_ids))
         self._commit()
 
     def delete(self, doc_ids: Union[List[int], int]) -> None:

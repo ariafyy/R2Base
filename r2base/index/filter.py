@@ -43,6 +43,14 @@ class FilterIndex(IndexBase):
         c.execute(schema)
         self.client.commit()
 
+    def delete_index(self) -> None:
+        self.client.close()
+        try:
+            os.remove(os.path.join(self.work_dir, 'db.sqlite'))
+            os.removedirs(self.work_dir)
+        except Exception as e:
+            self.logger.error(e)
+
     def add(self, data: Union[List[Dict], Dict], doc_ids: Union[List[int], int]) -> None:
         c = self.client.cursor()
         sql = 'INSERT INTO data VALUES ({})'.format(','.join(['?']*(len(self.fields)+1)))
