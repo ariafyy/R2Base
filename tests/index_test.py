@@ -1,6 +1,8 @@
 from r2base.index.filter import FilterIndex
 from r2base.index.keyvalue import KVIndex
 from r2base.index.inverted import BM25Index
+from r2base.index.vector import VectorIndex
+import pytest
 
 WORK_DIR = "."
 
@@ -60,3 +62,14 @@ def test_bm25():
     i.delete_index()
 
 
+def test_vector():
+    index = VectorIndex(WORK_DIR, 'test_vector', {'num_dim': 3})
+    index.delete_index()
+    index.create_index()
+    index.add([1, 2, 3], 1)
+    index.add([3, 2, 1], 2)
+    index.add([[1, 2, 3], [4, 5, 6]], [3, 4])
+    assert index.size() == 4
+    assert index.rank([1,2, 3], 10)[0][0] == pytest.approx(1.0)
+    index.delete([1])
+    assert index.size() == 3
