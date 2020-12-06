@@ -5,6 +5,7 @@ from typing import List, Tuple, Union, Dict
 import numpy as np
 import os
 import tantivy
+import shutil
 
 
 class InvertedIndex(IndexBase):
@@ -72,6 +73,12 @@ class BM25Index(IndexBase):
         schema = schema_builder.build()
         tantivy.Index(schema, self.work_dir)
 
+    def delete_index(self) -> None:
+        try:
+            shutil.rmtree(self.work_dir)
+        except Exception as e:
+            self.logger.error(e)
+
     def add(self, data: Union[List[str], str], doc_ids: Union[List[int], int]) -> None:
         if type(data) is str:
             data = [data]
@@ -111,6 +118,7 @@ if __name__ == "__main__":
     root = '.'
     idx = 'test-3'
     i = BM25Index(root, idx, {})
+    i.delete_index()
     i.create_index()
     i.add('我 来 自 上海，叫做 赵天成', 1)
     i.add('我 来 自 北京，叫做 赵天成', 2)

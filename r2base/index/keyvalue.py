@@ -6,6 +6,7 @@ from typing import Dict, Union, List, Any
 import os
 import numpy as np
 
+
 class KVIndex(IndexBase):
     type = IT.LOOKUP
     logger = logging.getLogger(__name__)
@@ -26,7 +27,13 @@ class KVIndex(IndexBase):
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
     def delete_index(self) -> None:
-        self.client.close()
+        try:
+            if self._client is not None:
+                self.client.close()
+                self._client = None
+        except Exception as e:
+            self.logger.error(e)
+
         try:
             os.remove(os.path.join(self.work_dir, 'db.sqlite'))
             os.removedirs(self.work_dir)
@@ -55,6 +62,10 @@ class KVIndex(IndexBase):
 
     def sample(self, size: int) -> List:
         random_ids = set(np.random.randint(0, len(self.client), size))
+        while len(random_ids) < size:
+            r = np.random.randint(0, len(self.client))
+            if r not in random_ids:
+                random_ids.add(r)
         res = []
         for key_id, key in enumerate(self.client.keys()):
             if key_id in random_ids:

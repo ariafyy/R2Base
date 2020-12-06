@@ -44,7 +44,13 @@ class FilterIndex(IndexBase):
         self.client.commit()
 
     def delete_index(self) -> None:
-        self.client.close()
+        try:
+            if self._client is not None:
+                self.client.close()
+                self._client = None
+        except Exception as e:
+            self.logger.error(e)
+
         try:
             os.remove(os.path.join(self.work_dir, 'db.sqlite'))
             os.removedirs(self.work_dir)
