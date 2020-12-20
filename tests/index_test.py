@@ -74,3 +74,7 @@ def test_vector():
     index.delete([1])
     assert index.size() == 3
     index.delete_index()
+
+
+def test_index():
+    pass

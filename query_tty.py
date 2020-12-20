@@ -2,7 +2,7 @@ from r2base.engine.ranker import Ranker
 
 if __name__ == "__main__":
     ranker = Ranker()
-    index = 'wiki'
+    index = 'test-raw'
 
     while True:
         query = input("Type a query:\n")
@@ -13,9 +13,7 @@ if __name__ == "__main__":
             q = query
             filter = None
 
-        res = ranker.query(index, {'read': {'content': {'q': 'what is the main event?', 'model_id': 'xx'},
-                                            'header': {'q': 'what is the date?', 'model_id': 'yy'}},
-                                   'match': {'text': q},
+        res = ranker.query(index, {'match': {'doc': q},
                                    'filter': filter,
                                    'size': 5})
         print('{} results'.format(len(res)))

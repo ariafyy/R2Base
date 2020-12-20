@@ -6,6 +6,7 @@ import numpy as np
 import os
 import tantivy
 import shutil
+import re
 
 
 class InvertedIndex(IndexBase):
@@ -42,6 +43,9 @@ class BM25Index(IndexBase):
         self._writer = None
         self._searcher = None
         self._client = None
+
+    def _normalize(self, text):
+        return re.sub('["\[\]{\}]', '', text)
 
     @property
     def client(self):
@@ -108,7 +112,10 @@ class BM25Index(IndexBase):
         :param tokens: tokenized query
         :return:
         """
-        query = self.client.parse_query(text, ["text"])
+        text = self._normalize(text).strip()
+        if not text:
+            return []
+        query = self.client.parse_query(self._normalize(text), ["text"])
         res = self.searcher.search(query, top_k)
         results = [(h[0], self.searcher.doc(h[1])['_id'][0]) for h in res.hits]
         return results
