@@ -45,7 +45,7 @@ class BM25Index(IndexBase):
         self._client = None
 
     def _normalize(self, text):
-        return re.sub('["\[\]{\}:/]', '', text).replace("\\","")
+        return re.sub('["\[\]{\}:/)(-]', '', text).replace("\\","")
 
     @property
     def client(self):

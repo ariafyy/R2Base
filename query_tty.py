@@ -13,7 +13,7 @@ if __name__ == "__main__":
             q = query
             filter = None
 
-        res = ranker.query(index, {'match': {'doc': q},
+        res = ranker.query(index, {'match': {'doc': q, 'title': q},
                                    'filter': filter,
                                    'size': 5})
         print('{} results'.format(len(res)))

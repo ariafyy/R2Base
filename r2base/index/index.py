@@ -9,6 +9,7 @@ from r2base.index.vector import VectorIndex
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks, get_uid
 import os
+from joblib import Parallel, delayed
 from typing import Dict, Set
 from tqdm import tqdm
 import json
@@ -284,6 +285,27 @@ class Index(object):
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
+    def _field_query(self, mappings, field, value, rank_k):
+        mapping = mappings[field]
+        if field == FT.id or self._is_filter(mapping['type']):
+            self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
+            return []
+
+        temp = []
+        if mapping['type'] == FT.text and 'index' in mapping:
+            pipe = Pipeline(mappings[field]['q_processor'])
+            kwargs = {'lang': mappings[field]['lang'],
+                      'model_id': mappings[field].get('q_model_id')}
+            anno_value = pipe.run(value, **kwargs)
+
+            if mapping['index'] == IT.BM25:
+                temp = self._get_sub_index(field, mapping).rank(anno_value, rank_k)
+
+        elif mapping['type'] == FT.vector:
+            temp = self._get_sub_index(field, mapping).rank(value, rank_k)
+
+        return temp
+
     def query(self, q: Dict) -> List[Dict]:
         """
         :param index_id:
@@ -309,27 +331,12 @@ class Index(object):
         do_filter = q_filter is not None
 
         rank_k = min(10000, top_k*10 if do_filter else top_k)
-        for field, value in q_match.items():
-            mapping = mappings[field]
-            if field == FT.id or self._is_filter(mapping['type']):
-                self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
-                continue
-
-            if mapping['type'] == FT.text and 'index' in mapping:
-                pipe = Pipeline(mappings[field]['q_processor'])
-                kwargs = {'lang': mappings[field]['lang'],
-                          'model_id': mappings[field].get('q_model_id')}
-                anno_value = pipe.run(value, **kwargs)
-
-                if mapping['index'] == IT.BM25:
-                    temp = self._get_sub_index(field, mapping).rank(anno_value, rank_k)
-                    for score, _id in temp:
-                        ranks[_id] = score + ranks.get(_id, 0.0)
-
-            elif mapping['type'] == FT.vector:
-                temp = self._get_sub_index(field, mapping).rank(value, rank_k)
-                for score, _id in temp:
-                    ranks[_id] = score + ranks.get(_id, 0.0)
+        n_job = max(1, min(5, len(q_match)))
+        results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._field_query)(mappings, field, value, rank_k)
+                                         for field, value in q_match.items())
+        for temp in results:
+            for score, _id in temp:
+                ranks[_id] = score + ranks.get(_id, 0.0)
 
         if do_filter:
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))

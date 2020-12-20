@@ -5,6 +5,7 @@ import faiss
 from typing import Dict, Union, List, Tuple
 import os
 
+
 class VectorIndex(IndexBase):
     type = IT.VECTOR
     data_name = 'data.index'
