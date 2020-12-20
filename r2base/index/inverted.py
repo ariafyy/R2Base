@@ -45,7 +45,7 @@ class BM25Index(IndexBase):
         self._client = None
 
     def _normalize(self, text):
-        return re.sub('["\[\]{\}]', '', text)
+        return re.sub('["\[\]{\}:/]', '', text).replace("\\","")
 
     @property
     def client(self):
@@ -115,7 +115,11 @@ class BM25Index(IndexBase):
         text = self._normalize(text).strip()
         if not text:
             return []
-        query = self.client.parse_query(self._normalize(text), ["text"])
+        try:
+            query = self.client.parse_query(text, ["text"])
+        except Exception as e:
+            self.logger.error("Error on searching {}".format(text))
+            raise e
         res = self.searcher.search(query, top_k)
         results = [(h[0], self.searcher.doc(h[1])['_id'][0]) for h in res.hits]
         return results

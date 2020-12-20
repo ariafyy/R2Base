@@ -17,4 +17,4 @@ def chunks(l: Sequence, win_len: int, stride_len: int):
 
 
 def get_uid() -> int:
-    return int(uuid.uuid1().int >> 64)
+    return int(uuid.uuid1().int >> 65)
