@@ -4,7 +4,7 @@ from r2base.utils import chunks
 from typing import List, Tuple, Union, Dict
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch import helpers as es_helpers
-
+import logging
 
 class EsBaseIndex(IndexBase):
     def __init__(self, root_dir: str, index_id: str, mapping: Dict):
@@ -16,6 +16,8 @@ class EsBaseIndex(IndexBase):
             timeout=1000,
             connection_class=RequestsHttpConnection
         )
+        tracer = logging.getLogger('elasticsearch')
+        tracer.setLevel(logging.WARNING)  # or desired level
         self.logger.info("Create ES client {}".format(EnvVar.ES_URL))
 
     def delete_index(self) -> None:
@@ -41,11 +43,9 @@ class EsBaseIndex(IndexBase):
         res = None
         for c_id, chunk in enumerate(chunks(data, win_len=chunk_size, stride_len=chunk_size)):
             try:
-                self.logger.info("Processing up to {}".format(c_id * chunk_size))
                 res = es_helpers.bulk(self.es, actions=chunk, request_timeout=500)
             except Exception as e:
                 self.logger.error(e)
                 raise e
 
-        self.logger.info("Done indexing to ES")
         return res
