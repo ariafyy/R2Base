@@ -10,6 +10,10 @@ Checkout
     example.py
     wiki_example.py
     
+### Run Server
+    uvicorn r2base.http.server:app --host 0.0.0.0 --workers 4
+
+
 ### TODO
 
 - Support basic operations, e.g. CRUD, filters etc [DONE]

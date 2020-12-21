@@ -12,6 +12,9 @@ class EnvVar(object):
     MODEL_DIR = os.environ.get("MODEL_DIR", default['MODEL_DIR'])
     API_PREFIX = os.environ.get('API_PREFIX', default['API_PREFIX'])
     IS_DEBUG = bool(os.environ.get('IS_DEBUG', default['IS_DEBUG']))
+    IV_BACKEND = os.environ.get('IV_BACKEND', default['IV_BACKEND'])
+    ANN_BACKEND = os.environ.get('ANN_BACKEND', default['ANN_BACKEND'])
+    ES_URL = os.environ.get('ES_URL', 'http://127.0.0.1:9200')
 
     MAX_NUM_INDEX = int(os.environ.get('MAX_NUM_INDEX', 100))
     INDEX_BATCH_SIZE = int(os.environ.get('INDEX_BATCH_SIZE', 100))

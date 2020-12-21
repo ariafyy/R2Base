@@ -1,11 +1,10 @@
-from typing import Dict, Union, List
+from typing import Union, List
 from r2base import FieldType as FT
 from r2base import IndexType as IT
 from r2base.index import IndexBase
-from r2base.index.inverted import BM25Index
+from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
-from r2base.index.vector import VectorIndex
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks, get_uid
 import os
@@ -16,6 +15,24 @@ import json
 import logging
 import shutil
 
+if EnvVar.IV_BACKEND == 'ty':
+    from r2base.index.iv.ty_inverted import TyBM25Index
+    BM25Index = TyBM25Index
+elif EnvVar.IV_BACKEND == 'es':
+    from r2base.index.iv.es_inverted import EsBM25Index
+    BM25Index = EsBM25Index
+else:
+    raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
+
+
+if EnvVar.ANN_BACKEND == 'faiss':
+    from r2base.index.ann.faiss_vector import FaissVectorIndex
+    VectorIndex = FaissVectorIndex
+elif EnvVar.ANN_BACKEND == 'es':
+    from r2base.index.ann.es_vector import EsVectorIndex
+    VectorIndex = EsVectorIndex
+else:
+    raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
 
 class Index(object):
 

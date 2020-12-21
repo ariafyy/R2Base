@@ -1,7 +1,7 @@
 from r2base.index.filter import FilterIndex
 from r2base.index.keyvalue import KVIndex
-from r2base.index.inverted import BM25Index
-from r2base.index.vector import VectorIndex
+from r2base.index.iv.ty_inverted import TyBM25Index
+from r2base.index.ann.faiss_vector import FaissVectorIndex
 import pytest
 
 WORK_DIR = "."
@@ -47,7 +47,7 @@ def test_kv():
 
 
 def test_bm25():
-    i = BM25Index(WORK_DIR, 'test_bm25', {})
+    i = TyBM25Index(WORK_DIR, 'test_bm25', {})
     i.delete_index()
     i.create_index()
     i.add('I am from China. My name is Tony.', 1)
@@ -63,7 +63,7 @@ def test_bm25():
 
 
 def test_vector():
-    index = VectorIndex(WORK_DIR, 'test_vector', {'num_dim': 3})
+    index = FaissVectorIndex(WORK_DIR, 'test_vector', {'num_dim': 3})
     index.delete_index()
     index.create_index()
     index.add([1, 2, 3], 1)
