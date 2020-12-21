@@ -196,6 +196,7 @@ class Index(object):
         """
         self.logger.info("Removing index {}".format(self.index_id))
         # first delete each sub-index
+        # TODO this will not work if it restart
         for field, index in self._clients.items():
             try:
                 index.delete_index()

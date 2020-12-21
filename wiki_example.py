@@ -50,6 +50,7 @@ if __name__ == "__main__":
     docs = []
     chunk_size = 100
     index = 'wiki-es'
+    indexer.delete_index(index)
     indexer.create_index(index, mapping)
     cnt = 0
     with open(path, 'rb') as f:

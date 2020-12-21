@@ -51,7 +51,7 @@ class EsBM25Index(EsBaseIndex):
                 '_index': self.index_id
             })
 
-        self.run_bulk(data, 5000)
+        self.run_bulk(index_data, 5000)
 
     def rank(self, text: str, top_k: int) -> List[Tuple[float, int]]:
         """

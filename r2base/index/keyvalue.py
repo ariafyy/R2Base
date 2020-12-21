@@ -18,7 +18,9 @@ class KVIndex(IndexBase):
     @property
     def client(self):
         if self._client is None:
-            self._client = SqliteDict(os.path.join(self.work_dir, 'db.sqlite'), autocommit=True)
+            self._client = SqliteDict(os.path.join(self.work_dir, 'db.sqlite'),
+                                      tablename=self.index_id,
+                                      autocommit=False)
         return self._client
 
     def create_index(self) -> None:
@@ -52,6 +54,7 @@ class KVIndex(IndexBase):
         else:
             for k, v in zip(key, value):
                 self.client[k] = v
+        self.client.commit()
 
     def get(self, key: int) -> Union[None, Dict]:
         if key is None:
@@ -77,9 +80,12 @@ class KVIndex(IndexBase):
             return None
 
         if type(key) is int:
-            return self.client.pop(key, None)
+            res = self.client.pop(key, None)
         else:
-            return [self.client.pop(k, None) for k in key]
+            res = [self.client.pop(k, None) for k in key]
+
+        self.client.commit()
+        return res
 
 
 if __name__ == "__main__":
