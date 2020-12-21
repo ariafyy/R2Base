@@ -195,13 +195,19 @@ class Index(object):
         :return: delete the whole index from the disk completely
         """
         self.logger.info("Removing index {}".format(self.index_id))
+
         # first delete each sub-index
-        # TODO this will not work if it restart
-        for field, index in self._clients.items():
+        self.id_index.delete_index()
+        self.filter_index.delete_index()
+
+        for field, mapping in self.mappings.items():
             try:
-                index.delete_index()
+                if (mapping['type'] == FT.text and 'index' in mapping) or \
+                        mapping['type'] == FT.vector:
+                    self._get_sub_index(field, mapping).delete_index()
             except Exception as e:
                 self.logger.error(e)
+
         # remove the whole folder
         try:
             shutil.rmtree(self.index_dir)
