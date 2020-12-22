@@ -49,7 +49,7 @@ class Index(object):
         return '{}-{}'.format(self.index_id, field)
 
     def _is_filter(self, field_type):
-        return field_type in {FT.keyword, FT.float, FT.integer}
+        return field_type in {FT.KEYWORD, FT.FLOAT, FT.INT}
 
     @property
     def mappings(self):
@@ -127,20 +127,20 @@ class Index(object):
 
     def _get_sub_index(self, field: str, mapping: Dict) -> IndexBase:
         if field not in self._clients:
-            if field == FT.id:
-                self._clients[field] = KVIndex(self.index_dir, self._sub_index(FT.id), mapping)
+            if field == FT.ID:
+                self._clients[field] = KVIndex(self.index_dir, self._sub_index(FT.ID), mapping)
 
             elif field == IT.FILTER:
                 self._clients[field] = FilterIndex(self.index_dir, self._sub_index(field), mapping)
 
-            elif mapping['type'] == FT.text and 'index' in mapping:
+            elif mapping['type'] == FT.TEXT and 'index' in mapping:
                 sub_id = self._sub_index(field)
                 if mapping['index'] == IT.BM25:
                     self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
                 elif mapping['index'] == IT.VECTOR:
                     self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
-            elif mapping['type'] == FT.vector:
+            elif mapping['type'] == FT.VECTOR:
                 sub_id = self._sub_index(field)
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
@@ -152,7 +152,7 @@ class Index(object):
 
     @property
     def id_index(self) -> KVIndex:
-        return self._get_sub_index(FT.id, {'type': FT.id})
+        return self._get_sub_index(FT.ID, {'type': FT.ID})
 
     def create_index(self, mappings: Dict) -> None:
         """
@@ -165,11 +165,11 @@ class Index(object):
             os.mkdir(self.index_dir)
 
         # assign the internal field and overwrite
-        mappings[FT.id] = {'type': FT.id}
+        mappings[FT.ID] = {'type': FT.ID}
 
         # add q_processor
         for field, mapping in mappings.items():
-            if mapping['type'] == FT.text and 'index' in mapping:
+            if mapping['type'] == FT.TEXT and 'index' in mapping:
                 if 'q_processor' not in mapping:
                     mapping['q_processor'] = mapping['processor']
 
@@ -182,7 +182,7 @@ class Index(object):
         self.id_index.create_index()
         self.filter_index.create_index()
         for field, mapping in mappings.items():
-            if field == FT.id:
+            if field == FT.ID:
                 continue
             if self._is_filter(mapping['type']):
                 continue
@@ -202,8 +202,8 @@ class Index(object):
 
         for field, mapping in self.mappings.items():
             try:
-                if (mapping['type'] == FT.text and 'index' in mapping) or \
-                        mapping['type'] == FT.vector:
+                if (mapping['type'] == FT.TEXT and 'index' in mapping) or \
+                        mapping['type'] == FT.VECTOR:
                     self._get_sub_index(field, mapping).delete_index()
             except Exception as e:
                 self.logger.error(e)
@@ -241,12 +241,12 @@ class Index(object):
             # Insert raw data by ID. Set UID if it's missing
             batch_ids = []
             for d in batch:
-                if FT.id not in d:
-                    d[FT.id] = get_uid()
+                if FT.ID not in d:
+                    d[FT.ID] = get_uid()
 
-                self.id_index.set(d[FT.id], d)
-                ids.append(d[FT.id])
-                batch_ids.append(d[FT.id])
+                self.id_index.set(d[FT.ID], d)
+                ids.append(d[FT.ID])
+                batch_ids.append(d[FT.ID])
 
             # insert filter fields
             self.filter_index.add(batch, batch_ids)
@@ -258,10 +258,10 @@ class Index(object):
                     if field not in d:
                         self.logger.info("{} is missing in document".format(field))
                         continue
-                    valid_ids.append(d[FT.id])
+                    valid_ids.append(d[FT.ID])
                     valid_docs.append(d)
 
-                if mapping['type'] == FT.text and 'index' in mapping:
+                if mapping['type'] == FT.TEXT and 'index' in mapping:
 
                     pipe = Pipeline(self.mappings[field]['processor'])
                     kwargs = {'lang': self.mappings[field]['lang']}
@@ -270,7 +270,7 @@ class Index(object):
                     if mapping['index'] == IT.BM25:
                         self._get_sub_index(field, mapping).add(annos, valid_ids)
 
-                elif mapping['type'] == FT.vector:
+                elif mapping['type'] == FT.VECTOR:
                     vectors = [b_d[field] for b_d in valid_docs],
                     self._get_sub_index(field, mapping).add(vectors, valid_ids)
 
@@ -282,8 +282,8 @@ class Index(object):
         self.filter_index.delete(doc_ids)
 
         for field, mapping in self.mappings.items():
-            if (mapping['type'] == FT.text and 'index' in mapping) or \
-                    mapping['type'] == FT.vector:
+            if (mapping['type'] == FT.TEXT and 'index' in mapping) or \
+                    mapping['type'] == FT.VECTOR:
                 self._get_sub_index(field, mapping).delete(doc_ids)
 
     def read_docs(self, doc_ids: Union[int, List[int]]) -> Union[Dict, List]:
@@ -302,21 +302,21 @@ class Index(object):
                     ) -> List[int]:
         doc_ids = []
         for d in docs:
-            if FT.id not in docs:
+            if FT.ID not in docs:
                 raise Exception("Cannot update an document that has missing ID")
-            doc_ids.append(d[FT.id])
+            doc_ids.append(d[FT.ID])
         self.delete_docs(doc_ids)
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
     def _field_query(self, mappings, field, value, rank_k):
         mapping = mappings[field]
-        if field == FT.id or self._is_filter(mapping['type']):
+        if field == FT.ID or self._is_filter(mapping['type']):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return []
 
         temp = []
-        if mapping['type'] == FT.text and 'index' in mapping:
+        if mapping['type'] == FT.TEXT and 'index' in mapping:
             pipe = Pipeline(mappings[field]['q_processor'])
             kwargs = {'lang': mappings[field]['lang'],
                       'model_id': mappings[field].get('q_model_id')}
@@ -325,7 +325,7 @@ class Index(object):
             if mapping['index'] == IT.BM25:
                 temp = self._get_sub_index(field, mapping).rank(anno_value, rank_k)
 
-        elif mapping['type'] == FT.vector:
+        elif mapping['type'] == FT.VECTOR:
             temp = self._get_sub_index(field, mapping).rank(value, rank_k)
 
         return temp

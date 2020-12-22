@@ -1,16 +1,17 @@
 
 
 class FieldType(object):
-    id = '_id'
-    keyword = 'keyword'
-    float = 'float'
-    integer = 'integer'
-    vector = "vector"
-    text = "text"
+    ID = '_id'
+    KEYWORD = 'keyword'
+    FLOAT = 'float'
+    INT = 'integer'
+    VECTOR = "vector"
+    TEXT = "text"
+    DATE = "datetime"
 
 
 class IndexType(object):
-    CUS_INVERTED = "custom_inverted"
+    INVERTED = "inverted"
     VECTOR = "vector"
     FILTER = "filter"
     BM25 = "bm25"

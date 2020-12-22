@@ -29,11 +29,11 @@ class FilterIndex(IndexBase):
         schema = ['_id INTEGER']
         for field in self.fields:
             mapping = self.mapping[field]
-            if mapping['type'] == FT.keyword:
+            if mapping['type'] == FT.KEYWORD:
                 schema.append('{} TEXT'.format(field))
-            elif mapping['type'] == FT.float:
+            elif mapping['type'] == FT.FLOAT:
                 schema.append('{} REAL'.format(field))
-            elif mapping['type'] == FT.integer:
+            elif mapping['type'] == FT.INT:
                 schema.append('{} INTEGER'.format(field))
             else:
                 raise Exception("Unknown field type {}".format(json.dumps(mapping)))

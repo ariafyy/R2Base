@@ -17,7 +17,7 @@ class BaseMapping(object):
 class KeywordMapping(BaseMapping):
     def __init__(self, data):
         super().__init__(data)
-        assert self.type == FT.keyword
+        assert self.type == FT.KEYWORD
 
 
 class VectorMapping(BaseMapping):
@@ -25,7 +25,7 @@ class VectorMapping(BaseMapping):
 
     def __init__(self, data):
         super().__init__(data)
-        assert self.type == FT.vector
+        assert self.type == FT.VECTOR
         assert self.num_dim > 0
 
 
@@ -37,7 +37,7 @@ class TextMapping(BaseMapping):
 
     def __init__(self, data):
         super().__init__(data)
-        assert self.type == FT.text
+        assert self.type == FT.TEXT
 
 
 if __name__ == "__main__":
