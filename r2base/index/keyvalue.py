@@ -63,7 +63,10 @@ class KVIndex(IndexBase):
 
         return self.client.get(key, None)
 
-    def sample(self, size: int) -> List:
+    def sample(self, size: int, return_value: bool = True) -> List:
+        if self.size() == 0:
+            return []
+
         random_ids = set(np.random.randint(0, len(self.client), size))
         while len(random_ids) < size:
             r = np.random.randint(0, len(self.client))
@@ -72,7 +75,10 @@ class KVIndex(IndexBase):
         res = []
         for key_id, key in enumerate(self.client.keys()):
             if key_id in random_ids:
-                res.append(self.get(key))
+                if return_value:
+                    res.append(self.get(key))
+                else:
+                    res.append(key)
         return res
 
     def delete(self, key: Union[List[int], int]) -> Any:

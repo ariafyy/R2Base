@@ -12,6 +12,7 @@ from joblib import Parallel, delayed
 from typing import Dict, Set
 from tqdm import tqdm
 import json
+import numpy as np
 import logging
 import shutil
 
@@ -60,7 +61,7 @@ class Index(object):
             return self._mappings
 
         if not os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
-            raise Exception("Index {} does not exist.".format(self.index_id))
+            return dict()
 
         self._mappings = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
         return self._mappings
@@ -83,8 +84,7 @@ class Index(object):
 
         return json.dump(mappings, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
 
-    def _fuse_results(self, do_rank: bool, do_filter: bool,
-                      ranks: Dict, filters: Set, top_k: int) -> List[Dict]:
+    def _fuse_results(self, do_filter: bool, ranks: Dict, filters: Set, top_k: int) -> List[Dict]:
         """
         Given ranks and filters to create final top-K list
         :param do_rank: does the query contain non empty match
@@ -97,31 +97,20 @@ class Index(object):
         if len(ranks) == 0 and len(filters) == 0:
             return []
 
-        if do_rank:
-            if len(ranks) == 0:
-                return []
+        if len(ranks) == 0:
+            return []
 
-            if do_filter:
-                if len(filters) == 0:
-                    return []
-                else:
-                    filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
-                    filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-                    docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in filtered_ranks]
+        if do_filter:
+            if len(filters) == 0:
+                return []
             else:
-                ranks = [(k, v) for k, v in ranks.items()]
-                ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in ranks]
+                filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
+                filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)[0:top_k]
+                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in filtered_ranks]
         else:
-            if do_filter:
-                if len(filters) == 0:
-                    return []
-                # return filtered data
-                docs = [{'_source': self.id_index.get(_id), 'score': -1} for _id in filters[0:top_k]]
-            else:
-                # random sample some data
-                docs = self.id_index.sample(top_k)
-                docs = [{'_source': doc, 'score': -1} for doc in docs]
+            ranks = [(k, v) for k, v in ranks.items()]
+            ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
+            docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in ranks]
 
         return docs
 
@@ -347,24 +336,32 @@ class Index(object):
         q_match = q.get('match', {})
         q_filter = q.get('filter', None)
         top_k = q.get('size', 10)
-        mappings = self.mappings
+        if top_k <= 0:
+            return []
 
         ranks = dict()
         filters = set()
-        do_rank = len(q_match) > 0
         do_filter = q_filter is not None
 
         rank_k = min(10000, top_k*10 if do_filter else top_k)
-        n_job = max(1, min(5, len(q_match)))
-        results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._field_query)(mappings, field, value, rank_k)
-                                         for field, value in q_match.items())
-        for temp in results:
-            for score, _id in temp:
-                ranks[_id] = score + ranks.get(_id, 0.0)
+
+        if len(q_match) > 0:
+            n_job = max(1, min(5, len(q_match)))
+            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._field_query)(self.mappings, field, value, rank_k)
+                                             for field, value in q_match.items())
+
+            for temp in results:
+                for score, _id in temp:
+                    ranks[_id] = score + ranks.get(_id, 0.0)
+        else:
+            # get random IDs
+            keys = self.id_index.sample(rank_k, return_value=False)
+            scores = np.random.random(len(keys))
+            ranks = {k: s for k, s in zip(keys, scores)}
 
         if do_filter:
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
 
-        docs = self._fuse_results(do_rank, do_filter, ranks, filters, top_k)
+        docs = self._fuse_results(do_filter, ranks, filters, top_k)
         return docs
 

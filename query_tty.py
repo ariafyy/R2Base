@@ -2,7 +2,7 @@ from r2base.engine.ranker import Ranker
 
 if __name__ == "__main__":
     ranker = Ranker()
-    index = 'hotpot'
+    index = 'wiki-es'
 
     while True:
         query = input("Type a query:\n")
