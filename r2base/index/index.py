@@ -49,7 +49,7 @@ class Index(object):
         return '{}-{}'.format(self.index_id, field)
 
     def _is_filter(self, field_type):
-        return field_type in {FT.KEYWORD, FT.FLOAT, FT.INT}
+        return field_type in {FT.KEYWORD, FT.FLOAT, FT.INT, FT.DATETIME, FT.DATE}
 
     @property
     def mappings(self):

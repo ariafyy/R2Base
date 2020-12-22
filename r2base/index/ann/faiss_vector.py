@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import ndarray
 from r2base.index import IndexBase
 from r2base import IndexType as IT
 import faiss

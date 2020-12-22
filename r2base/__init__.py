@@ -7,7 +7,8 @@ class FieldType(object):
     INT = 'integer'
     VECTOR = "vector"
     TEXT = "text"
-    DATE = "datetime"
+    DATE = "date"
+    DATETIME = "datetime"
 
 
 class IndexType(object):

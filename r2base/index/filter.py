@@ -35,6 +35,10 @@ class FilterIndex(IndexBase):
                 schema.append('{} REAL'.format(field))
             elif mapping['type'] == FT.INT:
                 schema.append('{} INTEGER'.format(field))
+            elif mapping['type'] == FT.DATE:
+                schema.append('{} DATE'.format(field))
+            elif mapping['type'] == FT.DATETIME:
+                schema.append('{} TIMESTAMP'.format(field))
             else:
                 raise Exception("Unknown field type {}".format(json.dumps(mapping)))
 

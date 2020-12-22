@@ -3,6 +3,7 @@ from r2base.index.keyvalue import KVIndex
 from r2base.index.iv.ty_inverted import TyBM25Index
 from r2base.index.ann.faiss_vector import FaissVectorIndex
 import pytest
+import datetime
 
 WORK_DIR = "."
 
@@ -11,16 +12,21 @@ def test_filter_index():
     c = FilterIndex(WORK_DIR, 'test_filter_index',
                     {'f1': {'type': "keyword"},
                      'f2': {"type": "integer"},
-                     'f3': {"type": "float"}})
+                     'f3': {"type": "float"},
+                     "f4": {'type': "date"},
+                     "f5": {'type': "datetime"}})
 
     c.delete_index()
     c.create_index()
-    c.add({'f1': "haha", "f2": 10}, 123)
-    c.add({'f1': "lala", "f3": 10.3}, 456)
+    c.add({'f1': "haha", "f2": 10, "f4": '2019-06-28'}, 123)
+    c.add({'f1': "lala", "f3": 10.3, "f5": '2020-06-28 20:57:32'}, 456)
     c.add({'f2': 12, "f3": 3.3}, 666)
     c.add([{'f2': 0, "f3": 5.3}, {'f2': 22, "f3": 1.1}],
           [789, 900])
 
+    assert len(c.select('f4=date("2019-06-28")')) == 1
+    assert len(c.select('f5=datetime("2020-06-28 20:57:32")')) == 1
+    assert len(c.select('f4 BETWEEN date("2019-05-28") AND date("2019-07-28")')) == 1
     assert c.size() == 5
     assert len(c.select('f2>1')) == 3
     c.delete([789, 666])
