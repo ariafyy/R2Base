@@ -17,12 +17,12 @@ Checkout
 ### TODO
 
 - Support basic operations, e.g. CRUD, filters etc [DONE]
-- Support native SPARTA in Tantivy
-- Support vector search using FASISS
+- Support native SPARTA in Tantivy [DONE]
+- Support vector search using FASISS [DONE]
 - Support reader 
 - Add better RESTful APIs [DONE]
-- Package as Docker image
-- Use ONNX instead of pytorch for models
+- Package as Docker image [DONE]
+- Use ONNX instead of pytorch for models 
 - Use faster BERT tokenizer 
     
  
