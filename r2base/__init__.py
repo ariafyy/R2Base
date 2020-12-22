@@ -6,6 +6,7 @@ class FieldType(object):
     FLOAT = 'float'
     INT = 'integer'
     VECTOR = "vector"
+    TERM_SCORE = "term_score"
     TEXT = "text"
     DATE = "date"
     DATETIME = "datetime"

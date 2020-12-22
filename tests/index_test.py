@@ -1,9 +1,9 @@
 from r2base.index.filter import FilterIndex
 from r2base.index.keyvalue import KVIndex
 from r2base.index.iv.ty_inverted import TyBM25Index
+from r2base.index.iv.es_inverted import EsInvertedIndex
 from r2base.index.ann.faiss_vector import FaissVectorIndex
 import pytest
-import datetime
 
 WORK_DIR = "."
 
@@ -81,6 +81,26 @@ def test_vector():
     assert index.size() == 3
     index.delete_index()
 
+
+def test_inverted():
+    i = EsInvertedIndex(WORK_DIR, 'test_es_iv', {})
+    i.delete_index()
+    i.create_index()
+    i.add({'a': 1, 'b': 2}, 1)
+    i.add([{'a': 1, 'c': 4}, {'d': 1, 'b': 2}], [2, 3])
+    i.add({'z': 1, 'd': 2}, 4)
+    import time
+    time.sleep(2)
+    assert i.size() == 4
+    docs = i.rank(['b'], 10)
+    assert len(docs) == 2
+    assert docs[0][0] == pytest.approx(2.0, rel=0.1)
+    i.delete(1)
+    assert i.size() == 3
+    docs = i.rank(['a', 'c'], 10)
+    assert len(docs) == 1
+    assert docs[0][0] == pytest.approx(5.0, rel=0.1)
+    i.delete_index()
 
 def test_index():
     pass

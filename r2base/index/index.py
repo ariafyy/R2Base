@@ -20,8 +20,9 @@ if EnvVar.IV_BACKEND == 'ty':
     from r2base.index.iv.ty_inverted import TyBM25Index
     BM25Index = TyBM25Index
 elif EnvVar.IV_BACKEND == 'es':
-    from r2base.index.iv.es_inverted import EsBM25Index
+    from r2base.index.iv.es_inverted import EsBM25Index, EsInvertedIndex
     BM25Index = EsBM25Index
+    IvIndex = EsInvertedIndex
 else:
     raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
 
@@ -128,8 +129,14 @@ class Index(object):
                     self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
                 elif mapping['index'] == IT.VECTOR:
                     self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
+                elif mapping['index'] == IT.INVERTED:
+                    self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
             elif mapping['type'] == FT.VECTOR:
+                sub_id = self._sub_index(field)
+                self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
+
+            elif mapping['type'] == IT.INVERTED:
                 sub_id = self._sub_index(field)
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
@@ -259,9 +266,16 @@ class Index(object):
                     if mapping['index'] == IT.BM25:
                         self._get_sub_index(field, mapping).add(annos, valid_ids)
 
+                    elif mapping['index'] == IT.INVERTED:
+                        self._get_sub_index(field, mapping).add(annos, valid_ids)
+
                 elif mapping['type'] == FT.VECTOR:
                     vectors = [b_d[field] for b_d in valid_docs],
                     self._get_sub_index(field, mapping).add(vectors, valid_ids)
+
+                elif mapping['type'] == FT.TERM_SCORE:
+                    ts = [b_d[field] for b_d in valid_docs],
+                    self._get_sub_index(field, mapping).add(ts, valid_ids)
 
         return ids
 
@@ -304,19 +318,13 @@ class Index(object):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return []
 
-        temp = []
         if mapping['type'] == FT.TEXT and 'index' in mapping:
             pipe = Pipeline(mappings[field]['q_processor'])
             kwargs = {'lang': mappings[field]['lang'],
                       'model_id': mappings[field].get('q_model_id')}
-            anno_value = pipe.run(value, **kwargs)
+            value = pipe.run(value, **kwargs)
 
-            if mapping['index'] == IT.BM25:
-                temp = self._get_sub_index(field, mapping).rank(anno_value, rank_k)
-
-        elif mapping['type'] == FT.VECTOR:
-            temp = self._get_sub_index(field, mapping).rank(value, rank_k)
-
+        temp = self._get_sub_index(field, mapping).rank(value, rank_k)
         return temp
 
     def query(self, q: Dict) -> List[Dict]:
