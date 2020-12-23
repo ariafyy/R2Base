@@ -19,6 +19,9 @@ Checkout
     docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.1
     uvicorn r2base.http.server:app --host 0.0.0.0 --workers 4
 
+### Live Docs
+    http://localhost:8000/docs
+
 ### TODO
 - Support basic operations, e.g. CRUD, filters etc [DONE]
 - Support native SPARTA in Tantivy [DONE]
