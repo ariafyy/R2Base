@@ -28,6 +28,10 @@ class IndexRead(BaseModel):
     size: int
 
 
+class IndexList(BaseModel):
+    indexes: List
+
+
 class MappingRead(BaseModel):
     index: str
     mappings: Dict

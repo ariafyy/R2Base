@@ -1,11 +1,18 @@
 from fastapi import APIRouter, HTTPException, status
 from starlette.requests import Request
 from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
-from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead
+from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList
 from r2base.engine.indexer import Indexer
 import time
 
 router = APIRouter()
+
+
+@router.get("/list", response_model=IndexList, name="Get a list of index names")
+async def post_predict(request: Request) -> IndexList:
+    indexer: Indexer = request.app.state.indexer
+    return IndexList(indexes=indexer.list())
+
 
 @router.post("/{index_id}", response_model=IndexWrite, name="Create Index", status_code=status.HTTP_201_CREATED)
 async def post_predict(
