@@ -1,0 +1,44 @@
+version: '2.3'
+
+services:
+  r2base:
+    image: convmind/soco-core-nes:0.19-beta-slim
+    container_name: sc-nes
+    ports:
+      - 7000:7000
+    env_file:
+      - linker.env
+    command: gunicorn --access-logfile '-'  -b 0.0.0.0:7000 -w 3 -t 300 query_wsgi:application
+    networks:
+      - soco
+    volumes:
+    - data:/app/resources
+
+  es:
+    image: convmind/soco-core-indexer:0.19-base-alpine
+    container_name: sc-indexer
+    ports:
+      - 8000:8000
+    env_file:
+      - linker.env
+    command: gunicorn --access-logfile '-'  -b 0.0.0.0:8000 -w 3 -t 300 index_wsgi:application
+    networks:
+      - soco
+
+  kibana:
+    image: convmind/soco-core-indexer:0.19-base-alpine
+    container_name: sc-main
+    command: python run_worker.py main
+    env_file:
+      - linker.env
+    volumes:
+      - data:/app/resources
+    networks:
+      - soco
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  soco:
