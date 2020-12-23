@@ -130,15 +130,15 @@ class Index(object):
                 elif mapping['index'] == IT.VECTOR:
                     self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
                 elif mapping['index'] == IT.INVERTED:
-                    self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
+                    self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
 
             elif mapping['type'] == FT.VECTOR:
                 sub_id = self._sub_index(field)
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
-            elif mapping['type'] == IT.INVERTED:
+            elif mapping['type'] == FT.TERM_SCORE:
                 sub_id = self._sub_index(field)
-                self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
+                self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
 
         return self._clients.get(field)
 
@@ -270,11 +270,11 @@ class Index(object):
                         self._get_sub_index(field, mapping).add(annos, valid_ids)
 
                 elif mapping['type'] == FT.VECTOR:
-                    vectors = [b_d[field] for b_d in valid_docs],
+                    vectors = [b_d[field] for b_d in valid_docs]
                     self._get_sub_index(field, mapping).add(vectors, valid_ids)
 
                 elif mapping['type'] == FT.TERM_SCORE:
-                    ts = [b_d[field] for b_d in valid_docs],
+                    ts = [b_d[field] for b_d in valid_docs]
                     self._get_sub_index(field, mapping).add(ts, valid_ids)
 
         return ids

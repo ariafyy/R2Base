@@ -82,7 +82,6 @@ class EsInvertedIndex(EsBaseIndex):
 
         index_data = []
         for ts, doc_id in zip(data, doc_ids):
-
             ts = {term: np.exp(s) - 1.0 for term, s in ts.items()}
             index_data.append({
                 '_id': doc_id,
