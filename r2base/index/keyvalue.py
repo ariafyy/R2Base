@@ -74,7 +74,7 @@ class KVIndex(IndexBase):
             random_ids = set(np.random.randint(0, len(self.client), size))
             attempts = 0 # in case dead loop in a case that is impossible
             while len(random_ids) < size and attempts < 1000:
-                r = np.random.randint(0, len(self.client))
+                r = np.random.randint(0, db_size)
                 attempts += 1
                 if r not in random_ids:
                     random_ids.add(r)
