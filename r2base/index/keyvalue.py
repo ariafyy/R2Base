@@ -67,11 +67,17 @@ class KVIndex(IndexBase):
         if self.size() == 0:
             return []
 
-        random_ids = set(np.random.randint(0, len(self.client), size))
-        while len(random_ids) < size:
-            r = np.random.randint(0, len(self.client))
-            if r not in random_ids:
-                random_ids.add(r)
+        db_size = len(self.client)
+        if size >= db_size:
+            random_ids = list(range(db_size))
+        else:
+            random_ids = set(np.random.randint(0, len(self.client), size))
+            attempts = 0 # in case dead loop in a case that is impossible
+            while len(random_ids) < size and attempts < 1000:
+                r = np.random.randint(0, len(self.client))
+                attempts += 1
+                if r not in random_ids:
+                    random_ids.add(r)
         res = []
         for key_id, key in enumerate(self.client.keys()):
             if key_id in random_ids:
