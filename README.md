@@ -1,7 +1,7 @@
 # R2Base: AI search engine
 
-### What is R2Base?
-R2Base a document store with semantic search and machine reading
+### What is R2Base (Rank & Reading Base)?
+R2Base is a document store with semantic search and machine reading
 
 ### Examples
 Checkout
@@ -18,6 +18,9 @@ Checkout
     docker pull docker.elastic.co/elasticsearch/elasticsearch:7.10.1
     docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.1
     uvicorn r2base.http.server:app --host 0.0.0.0 --workers 4
+
+### Live Docs
+    http://localhost:8000/docs
 
 ### TODO
 - Support basic operations, e.g. CRUD, filters etc [DONE]
