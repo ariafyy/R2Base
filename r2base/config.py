@@ -14,7 +14,7 @@ class EnvVar(object):
     IS_DEBUG = bool(os.environ.get('IS_DEBUG', default['IS_DEBUG']))
     IV_BACKEND = os.environ.get('IV_BACKEND', default['IV_BACKEND'])
     ANN_BACKEND = os.environ.get('ANN_BACKEND', default['ANN_BACKEND'])
-    ES_URL = os.environ.get('ES_URL', 'http://127.0.0.1:9200')
+    ES_URL = os.environ.get('ES_URL', default['ES_URL'])
 
     MAX_NUM_INDEX = int(os.environ.get('MAX_NUM_INDEX', 100))
     INDEX_BATCH_SIZE = int(os.environ.get('INDEX_BATCH_SIZE', 100))

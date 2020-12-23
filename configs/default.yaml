@@ -4,3 +4,4 @@ MODEL_DIR: "resources"
 API_PREFIX: "/r2base"
 IV_BACKEND: "es"
 ANN_BACKEND: "es"
+ES_URL : 'http://127.0.0.1:9200'

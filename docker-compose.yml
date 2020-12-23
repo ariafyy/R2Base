@@ -2,39 +2,37 @@ version: '2.3'
 
 services:
   r2base:
-    image: convmind/soco-core-nes:0.19-beta-slim
-    container_name: sc-nes
+    image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base:latest
+    container_name: r2base
     ports:
-      - 7000:7000
-    env_file:
-      - linker.env
-    command: gunicorn --access-logfile '-'  -b 0.0.0.0:7000 -w 3 -t 300 query_wsgi:application
+      - 8000:8000
+    environment:
+      - ES_URL = elastic:9200
     networks:
       - soco
     volumes:
     - data:/app/resources
 
-  es:
-    image: convmind/soco-core-indexer:0.19-base-alpine
-    container_name: sc-indexer
+  elastic:
+    image: registry.cn-hangzhou.aliyuncs.com/soco-images/model-as-service:es-7.10.1
+    container_name: elastic
     ports:
-      - 8000:8000
+      - 9200:9200
+      - 9300:9300
     env_file:
-      - linker.env
-    command: gunicorn --access-logfile '-'  -b 0.0.0.0:8000 -w 3 -t 300 index_wsgi:application
+      - discovery.type=single-node
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
     networks:
-      - soco
+      - r2base
 
   kibana:
-    image: convmind/soco-core-indexer:0.19-base-alpine
-    container_name: sc-main
-    command: python run_worker.py main
-    env_file:
-      - linker.env
-    volumes:
-      - data:/app/resources
+    image: registry.cn-hangzhou.aliyuncs.com/soco-images/model-as-service:kibana-7.10.1
+    container_name: kibana
+    ports:
+      - 5601:5601
     networks:
-      - soco
+      - r2base
 
 volumes:
   data:
