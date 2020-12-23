@@ -7,3 +7,4 @@ soco-encoders>=0.2.4
 soco-device>=0.0.5.2
 elasticsearch >= 7.0.4
 tantivy >= 0.13.2
+pyyaml >= 5.3.1
