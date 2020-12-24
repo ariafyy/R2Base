@@ -12,12 +12,7 @@ class FilterIndex(IndexBase):
 
     def __init__(self, root_dir: str, index_id: str, mapping: Dict):
         super().__init__(root_dir, index_id, mapping)
-        field_path = os.path.join(self.work_dir, 'fields.json')
-        if not os.path.exists(field_path):
-            fields = list(mapping.keys())
-            json.dump(fields, open(field_path, 'w'))
-
-        self.fields = json.load(open(field_path, 'r'))
+        self.fields = sorted(list(mapping.keys()))
         self._client = None
 
     @property
