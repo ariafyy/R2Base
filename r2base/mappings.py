@@ -1,45 +1,34 @@
-from types import SimpleNamespace
-import json
-from r2base import FieldType as FT
+from pydantic import BaseModel
 
 
-def from_string(json_str):
-    x = json.loads(json_str, object_hook=lambda d: SimpleNamespace(**d))
-    return x
-
-
-class BaseMapping(object):
+class KeywordMapping(BaseModel):
     type: str
-    def __init__(self, data):
-        self.__dict__ = data
 
 
-class KeywordMapping(BaseMapping):
-    def __init__(self, data):
-        super().__init__(data)
-        assert self.type == FT.KEYWORD
+class VectorMapping(BaseModel):
+    type: str
+    num_dim: int
 
 
-class VectorMapping(BaseMapping):
-    num_dim: int = 0
-
-    def __init__(self, data):
-        super().__init__(data)
-        assert self.type == FT.VECTOR
-        assert self.num_dim > 0
-
-
-class TextMapping(BaseMapping):
+class TextMapping(BaseModel):
     lang: str
     index: str
-    model: str
-    num_dim: int = 0
+    processor: str = None
+    model_id: str = None
+    q_processor: str = None
+    q_model_id: str = None
 
-    def __init__(self, data):
-        super().__init__(data)
-        assert self.type == FT.TEXT
+    def __init__(self, **data):
+        # initialize default values here for different index types
+        if 'q_processor' not in data:
+            data['q_processor'] = data.get('processor')
+        if 'q_model_id' not in data:
+            data['q_model_id'] = data.get('processor')
+
+        super().__init__(**data)
+
 
 
 if __name__ == "__main__":
-    x = KeywordMapping({"type": "keyword"})
-    print(x.type)
+    x = TextMapping.parse_obj({"type": "keyword", "lang": "zh", "index": "bm25"})
+    print(x)
