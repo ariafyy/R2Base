@@ -15,6 +15,8 @@ import json
 import numpy as np
 import logging
 import shutil
+import string
+
 
 if EnvVar.IV_BACKEND == 'ty':
     from r2base.index.iv.ty_inverted import TyBM25Index
@@ -41,10 +43,18 @@ class Index(object):
     logger = logging.getLogger(__name__)
 
     def __init__(self, root_dir: str, index_id: str):
+        self._validate_index(index_id)
         self.index_id = index_id
         self.index_dir = os.path.join(root_dir, self.index_id)
         self._mappings = None
         self._clients = dict()
+
+    def _validate_index(self, index_id):
+        check = set(string.digits + string.ascii_letters + '-_')
+        for x in index_id:
+            if x not in check:
+                raise Exception("Invalid index_id. It only contains letters, numbers, - and _.")
+
 
     def _sub_index(self, field: str):
         # index-text
