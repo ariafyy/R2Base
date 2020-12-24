@@ -77,7 +77,7 @@ class EsVectorIndex(EsBaseIndex):
             "size": top_k
         }
         res = self.es.search(index=self.index_id, body=query)
-        results = [(h['_score']-1.0, h['_id']) for h in res['hits']['hits']]
+        results = [(float(h['_score']/2.0), int(h['_id'])) for h in res['hits']['hits']]
         return results
 
 if __name__ == '__main__':

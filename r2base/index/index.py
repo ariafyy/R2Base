@@ -354,6 +354,9 @@ class Index(object):
         q_match = q.get('match', {})
         q_filter = q.get('filter', None)
         top_k = q.get('size', 10)
+        exclude = q.get('exclude', [])
+        include = q.get('include', [])
+
         if top_k <= 0:
             return []
 
@@ -381,5 +384,21 @@ class Index(object):
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
+
+        # include has higher priority than exclude
+        if len(include) > 0:
+            include = set(include)
+            for d in docs:
+                keys = list(d['_source'].keys())
+                for field in keys:
+                    if field not in include:
+                        d['_source'].pop(field, None)
+        else:
+            if len(exclude) > 0:
+                exclude = set(exclude)
+                for d in docs:
+                    for field in exclude:
+                        d['_source'].pop(field, None)
+
         return docs
 

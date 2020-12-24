@@ -93,14 +93,14 @@ class FilterIndex(IndexBase):
         res = c.execute('SELECT COUNT(*) FROM data')
         return res.fetchone()[0]
 
-    def select(self, query: str, valid_ids: List[int] = None, size: int = 10000) -> Set[int]:
-        query = query.strip()
+    def select(self, query: Union[str, None], valid_ids: List[int] = None, size: int = 10000) -> Set[int]:
+
         c = self.client.cursor()
         if valid_ids is None:
             if query == "" or query is None:
                 query = 'SELECT * FROM data'
             else:
-                query = 'SELECT * FROM data WHERE {}'.format(query)
+                query = 'SELECT * FROM data WHERE {}'.format(query.strip())
 
             cursor = c.execute(query)
         else:
@@ -108,7 +108,7 @@ class FilterIndex(IndexBase):
             if query == "" or query is None:
                 query = 'SELECT * FROM data WHERE _id IN ({})'.format(','.join(['?'] * len(valid_ids)))
             else:
-                query = 'SELECT * FROM data WHERE {} AND _id IN ({})'.format(query, ','.join(['?'] * len(valid_ids)))
+                query = 'SELECT * FROM data WHERE {} AND _id IN ({})'.format(query.strip(), ','.join(['?'] * len(valid_ids)))
 
             cursor = c.execute(query, valid_ids)
 

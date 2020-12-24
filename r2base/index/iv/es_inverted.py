@@ -48,7 +48,7 @@ class EsBM25Index(EsBaseIndex):
         :return:
         """
         res = self.es.search(index=self.index_id, body={"query": {"match": {"text": text}}, "size": top_k})
-        results = [(h['_score'], h['_id']) for h in res['hits']['hits']]
+        results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
         return results
 
 
@@ -102,7 +102,7 @@ class EsInvertedIndex(EsBaseIndex):
                                         }} for t in tokens]
         es_query = {"query": {"bool": {"should": main_query}}, "size": top_k}
         res = self.es.search(index=self.index_id, body=es_query)
-        results = [(h['_score'], h['_id']) for h in res['hits']['hits']]
+        results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
         return results
 
 
