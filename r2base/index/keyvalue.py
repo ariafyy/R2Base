@@ -50,10 +50,10 @@ class KVIndex(IndexBase):
             self.logger.warning("Try to save in redis with None")
             return None
         if type(key) is int:
-            self.client[key] = value
+            self.client[int(key)] = value
         else:
             for k, v in zip(key, value):
-                self.client[k] = v
+                self.client[int(k)] = v
         self.client.commit()
 
     def get(self, key: int) -> Union[None, Dict]:
@@ -61,7 +61,7 @@ class KVIndex(IndexBase):
             self.logger.warning("KV does not support None key")
             return None
 
-        return self.client.get(key, None)
+        return self.client.get(int(key), None)
 
     def sample(self, size: int, return_value: bool = True) -> List:
         if self.size() == 0:
@@ -92,9 +92,9 @@ class KVIndex(IndexBase):
             return None
 
         if type(key) is int:
-            res = self.client.pop(key, None)
+            res = self.client.pop(int(key), None)
         else:
-            res = [self.client.pop(k, None) for k in key]
+            res = [self.client.pop(int(k), None) for k in key]
 
         self.client.commit()
         return res
@@ -111,8 +111,10 @@ if __name__ == "__main__":
     c.set(1, '123')
     c.set(2, '456')
     c.set(3, '789')
-    print(c.size())
-    c.delete(4)
-    print(c.size())
     print(c.get(1))
-    print(c.sample(2))
+    c.delete_index()
+    c.create_index()
+    c.set(1, '123')
+    c.set(2, '456')
+    c.set(3, '789')
+    print(c.get(1))

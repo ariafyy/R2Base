@@ -38,6 +38,7 @@ elif EnvVar.ANN_BACKEND == 'es':
 else:
     raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
 
+
 class Index(object):
 
     logger = logging.getLogger(__name__)
@@ -54,7 +55,6 @@ class Index(object):
         for x in index_id:
             if x not in check:
                 raise Exception("Invalid index_id. It only contains letters, numbers, - and _.")
-
 
     def _sub_index(self, field: str):
         # index-text
@@ -202,10 +202,6 @@ class Index(object):
         """
         self.logger.info("Removing index {}".format(self.index_id))
 
-        # first delete each sub-index
-        self.id_index.delete_index()
-        self.filter_index.delete_index()
-
         for field, mapping in self.mappings.items():
             try:
                 if (mapping['type'] == FT.TEXT and 'index' in mapping) or \
@@ -214,6 +210,9 @@ class Index(object):
             except Exception as e:
                 self.logger.error(e)
 
+        # first delete each sub-index
+        self.id_index.delete_index()
+        self.filter_index.delete_index()
         # remove the whole folder
         try:
             shutil.rmtree(self.index_dir)

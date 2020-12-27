@@ -3,6 +3,7 @@ from r2base.index.keyvalue import KVIndex
 from r2base.index.iv.ty_inverted import TyBM25Index
 from r2base.index.iv.es_inverted import EsInvertedIndex
 from r2base.index.ann.faiss_vector import FaissVectorIndex
+from r2base.index.index import Index
 import pytest
 
 WORK_DIR = "."
@@ -103,4 +104,16 @@ def test_inverted():
     i.delete_index()
 
 def test_index():
-    pass
+    i = Index(WORK_DIR, 'test_index')
+    i.delete_index()
+    i.create_index({})
+    i.add_docs({"key": 123})
+    i.add_docs({"key": 456})
+    print(i.size())
+    print(i.query({'query': {"match": {}}}))
+    i.delete_index()
+    i.create_index({})
+    i.add_docs({"key": 123})
+    i.add_docs({"key": 456})
+    print(i.size())
+    print(i.query({'query': {"match": {}}}))
