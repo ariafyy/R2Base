@@ -24,7 +24,7 @@ def parse_mapping(mapping: dict):
     if basic_map.type == FT.VECTOR:
         return VectorMapping.parse_obj(mapping)
 
-    if basic_map == FT.TERM_SCORE:
+    if basic_map.type == FT.TERM_SCORE:
         return basic_map
 
     if basic_map.type == FT.TEXT:

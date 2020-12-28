@@ -78,7 +78,10 @@ class Index(object):
         temp = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
         self._mappings = dict()
         for key, mapping in temp.items():
-            self._mappings[key] = parse_mapping(mapping)
+            temp = parse_mapping(mapping)
+            if temp is None:
+                raise Exception("Error in parsing mapping {}".format(key))
+            self._mappings[key] = temp
 
         return self._mappings
 
@@ -221,7 +224,7 @@ class Index(object):
             self.logger.info(e)
 
     def get_mappings(self) -> Dict:
-        return {k: v.dict() for k, v in self.mappings}
+        return {k: v.dict() for k, v in self.mappings.items()}
 
     def size(self) -> int:
         return self.id_index.size()
