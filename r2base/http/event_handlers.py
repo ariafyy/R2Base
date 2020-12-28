@@ -28,5 +28,5 @@ def stop_app_handler(app: FastAPI) -> Callable:
 async def exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content={'detail': str(exc)},
+        content={'error': str(exc)},
     )

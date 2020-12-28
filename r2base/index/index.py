@@ -82,7 +82,7 @@ class Index(object):
         """
         :return: Load mapping from the disk.
         """
-        return {field:mapping for field, mapping in self.mappings.items() if self._is_filter(mapping['type'])}
+        return {field: mapping for field, mapping in self.mappings.items() if self._is_filter(mapping['type'])}
 
     def _dump_mappings(self,  mappings: Dict):
         """

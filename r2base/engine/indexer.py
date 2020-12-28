@@ -4,14 +4,12 @@ import logging
 from typing import Union, List, Dict
 import os
 
+
 class Indexer(EngineBase):
     logger = logging.getLogger(__name__)
 
-    def __init__(self):
-        self.indexes = dict()
-
     def create_index(self, index_id: str, mappings: Dict):
-        return self.get_index(index_id).create_index(mappings)
+        return self.get_index(index_id, upsert=True).create_index(mappings)
 
     def delete_index(self, index_id: str):
         self.get_index(index_id).delete_index()

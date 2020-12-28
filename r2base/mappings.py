@@ -22,6 +22,7 @@ class TextMapping(BaseModel):
         # initialize default values here for different index types
         if 'q_processor' not in data:
             data['q_processor'] = data.get('processor')
+
         if 'q_model_id' not in data:
             data['q_model_id'] = data.get('processor')
 
@@ -31,4 +32,5 @@ class TextMapping(BaseModel):
 
 if __name__ == "__main__":
     x = TextMapping.parse_obj({"type": "keyword", "lang": "zh", "index": "bm25"})
+    print(x['type'])
     print(x)
