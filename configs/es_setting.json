@@ -7,7 +7,7 @@
     "tokenizer": {
       "cutter_tokenizer": {
         "type": "pattern",
-        "pattern": "//"
+        "pattern": "/"
       }
     },
     "analyzer": {

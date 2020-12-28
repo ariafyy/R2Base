@@ -12,7 +12,8 @@ class EsBM25Index(EsBaseIndex):
     def create_index(self) -> None:
         mapping: TextMapping = self.mapping
         params = {"timeout": '100s'}
-        if mapping.lang == 'zh':
+        if 'tokenize' in mapping.processor:
+            self.logger.info("Detected customized tokenizer. Using cutter_analyzer")
             config = {
                 'mappings': {'properties': {'text': {'type': 'text', "analyzer": "cutter_analyzer"}}},
                 'settings': EnvVar.ES_SETTING

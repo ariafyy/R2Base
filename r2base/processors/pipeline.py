@@ -4,7 +4,7 @@ from r2base.processors import processor_map
 class Pipeline(object):
 
     def __init__(self, processors):
-        self.processors = processors.split(',')
+        self.processors = processors.split(';')
 
     def run(self, data, **kwargs):
         res = data

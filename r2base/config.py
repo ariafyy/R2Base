@@ -17,8 +17,8 @@ class EnvVar(object):
     IV_BACKEND = os.environ.get('IV_BACKEND', default['IV_BACKEND'])
     ANN_BACKEND = os.environ.get('ANN_BACKEND', default['ANN_BACKEND'])
     ES_URL = os.environ.get('ES_URL', default['ES_URL'])
-    ES_SHARD_NUM = os.environ.get('ES_SHARD_NUM', default['ES_URL'])
-    ES_REPLICA_NUM = os.environ.get('ES_REPLICA_NUM', default['ES_URL'])
+    ES_SHARD_NUM = int(os.environ.get('ES_SHARD_NUM', default['ES_SHARD_NUM']))
+    ES_REPLICA_NUM = int(os.environ.get('ES_REPLICA_NUM', default['ES_REPLICA_NUM']))
     ES_SETTING['index']['number_of_shards'] = ES_SHARD_NUM
     ES_SETTING['index']['number_of_replicas'] = ES_REPLICA_NUM
 

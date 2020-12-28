@@ -6,7 +6,9 @@ import numpy as np
 
 def wiki2doc(l):
     temp = json.loads(l)
-    docs = [{'title': temp[0], 'text': temp[1][0:1000], 'seed': np.random.randint(0, 1000)}]
+    docs = [{'title': temp[0],
+             'text': temp[1][0:1000],
+             'seed': np.random.randint(0, 1000)}]
     return docs
 
 
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     indexer.delete_index(index)
     indexer.create_index(index, mapping)
     cnt = 0
-    with open(path, 'rb') as f:
+    with open(path, 'r', encoding='utf8') as f:
         buffer = []
         for l in f:
             cnt += 1

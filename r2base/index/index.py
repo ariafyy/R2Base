@@ -144,7 +144,7 @@ class Index(object):
                 sub_id = self._sub_index_id(field)
                 index_mapping = parse_mapping(mapping.index_mapping)
                 if mapping.index == IT.BM25:
-                    self._clients[field] = BM25Index(self.index_dir, sub_id, index_mapping)
+                    self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
                 elif mapping.index == IT.VECTOR:
                     self._clients[field] = VectorIndex(self.index_dir, sub_id, index_mapping)
                 elif mapping.index == IT.INVERTED:
@@ -270,7 +270,7 @@ class Index(object):
                 if mapping.type == FT.TEXT:
                     mapping: TextMapping = mapping
                     pipe = Pipeline(mapping.processor)
-                    kwargs = {'lang': mapping.lang}
+                    kwargs = {'lang': mapping.lang, 'is_query': False}
                     annos = pipe.run([b_d[field] for b_d in valid_docs], **kwargs)
 
                     if mapping.index == IT.BM25:
@@ -329,7 +329,7 @@ class Index(object):
         if mapping.type == FT.TEXT:
             mapping: TextMapping = mapping
             pipe = Pipeline(mapping.q_processor)
-            kwargs = {'lang': mapping.lang}
+            kwargs = {'lang': mapping.lang, 'is_query': True}
             value = pipe.run(value, **kwargs)
 
         temp = self._get_sub_index(field, mapping).rank(value, rank_k)

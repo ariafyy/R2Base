@@ -15,6 +15,7 @@ class EsVectorIndex(EsBaseIndex):
         self._num_dim = mapping.num_dim
 
     def create_index(self):
+        mapping: VectorMapping = self.mapping
         params = {"timeout": '100s'}
         config = {
             'mappings': {
@@ -23,7 +24,6 @@ class EsVectorIndex(EsBaseIndex):
             'settings': EnvVar.ES_SETTING
         }
         self._make_index(self.index_id, config, params)
-
 
     def add(self, vector: Union[ndarray, List], doc_ids: Union[List[int], int]):
         if type(vector) is list:
@@ -76,7 +76,7 @@ class EsVectorIndex(EsBaseIndex):
         return results
 
 if __name__ == '__main__':
-    index = EsVectorIndex('..', 'test', {'num_dim': 800})
+    index = EsVectorIndex('..', 'test', VectorMapping(num_dim=800))
     """
     index.delete_index()
     index.create_index()
