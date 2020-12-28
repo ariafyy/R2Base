@@ -1,0 +1,19 @@
+{
+  "index" : {
+     "number_of_shards" : 2,
+     "number_of_replicas" : 1
+  },
+  "analysis": {
+    "tokenizer": {
+      "cutter_tokenizer": {
+        "type": "pattern",
+        "pattern": "//"
+      }
+    },
+    "analyzer": {
+      "cutter_analyzer": {
+        "tokenizer": "cutter_tokenizer"
+      }
+    }
+  }
+}

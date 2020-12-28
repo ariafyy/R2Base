@@ -49,6 +49,9 @@ class TextMapping(BasicMapping):
     def __init__(self, **data):
         print(data)
         # initialize default values here for different index types
+        if 'processor' not in data:
+            data['processor'] = 'nothing'
+
         if 'q_processor' not in data:
             data['q_processor'] = data.get('processor')
 

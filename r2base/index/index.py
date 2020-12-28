@@ -366,7 +366,8 @@ class Index(object):
 
         if len(q_match) > 0:
             n_job = max(1, min(5, len(q_match)))
-            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings, field, value, rank_k)
+            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
+                                                                                          field, value, rank_k)
                                              for field, value in q_match.items())
 
             for temp in results:

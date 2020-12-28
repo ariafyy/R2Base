@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray
 from r2base import IndexType as IT
+from r2base.config import EnvVar
 from r2base.index.util_bases import EsBaseIndex
 from r2base.mappings import VectorMapping
 from typing import Dict, Union, List, Tuple
@@ -14,22 +15,15 @@ class EsVectorIndex(EsBaseIndex):
         self._num_dim = mapping.num_dim
 
     def create_index(self):
-        if self.es.indices.exists(index=self.index_id):
-            raise Exception("Index {} already existed".format(self.index_id))
         params = {"timeout": '100s'}
         config = {
             'mappings': {
-                'properties': {
-                    'vector': {'type': 'dense_vector', 'dims': self._num_dim}
-                }
-            }
+                'properties': {'vector': {'type': 'dense_vector', 'dims': self._num_dim}}
+            },
+            'settings': EnvVar.ES_SETTING
         }
-        resp = self.es.indices.create(index=self.index_id, ignore=400, body=config, params=params)
-        if resp.get('acknowledged', False) is False:
-            self.logger.error(resp)
-            raise Exception("Error in creating index")
-        else:
-            self.logger.info("Index {} is created".format(self.index_id))
+        self._make_index(self.index_id, config, params)
+
 
     def add(self, vector: Union[ndarray, List], doc_ids: Union[List[int], int]):
         if type(vector) is list:
