@@ -8,7 +8,7 @@ class IndexBase(object):
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping):
         self.root_dir = root_dir
         self.index_id = index_id
         self.mapping = mapping

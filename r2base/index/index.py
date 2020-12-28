@@ -5,6 +5,7 @@ from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
+from r2base.mappings import parse_mapping, BasicMapping, TextMapping
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks, get_uid
 import os
@@ -44,27 +45,27 @@ class Index(object):
     logger = logging.getLogger(__name__)
 
     def __init__(self, root_dir: str, index_id: str):
-        self._validate_index(index_id)
+        self._validate_index_id(index_id)
         self.index_id = index_id
         self.index_dir = os.path.join(root_dir, self.index_id)
         self._mappings = None
         self._clients = dict()
 
-    def _validate_index(self, index_id):
+    def _validate_index_id(self, index_id):
         check = set(string.digits + string.ascii_letters + '-_')
         for x in index_id:
             if x not in check:
                 raise Exception("Invalid index_id. It only contains letters, numbers, - and _.")
 
-    def _sub_index(self, field: str):
+    def _sub_index_id(self, field: str):
         # index-text
         return '{}-{}'.format(self.index_id, field)
 
     def _is_filter(self, field_type):
-        return field_type in {FT.KEYWORD, FT.FLOAT, FT.INT, FT.DATETIME, FT.DATE}
+        return field_type in FT.FILTER_TYPES
 
     @property
-    def mappings(self):
+    def mappings(self) -> Dict:
         """
         :return: Load mapping from the disk.
         """
@@ -74,15 +75,19 @@ class Index(object):
         if not os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
             return dict()
 
-        self._mappings = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
+        temp = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
+        self._mappings = dict()
+        for key, mapping in temp.items():
+            self._mappings[key] = parse_mapping(mapping)
+
         return self._mappings
 
     @property
-    def filter_mappings(self):
+    def filter_mappings(self) -> Dict[str, BasicMapping]:
         """
         :return: Load mapping from the disk.
         """
-        return {field: mapping for field, mapping in self.mappings.items() if self._is_filter(mapping['type'])}
+        return {field: mapping for field, mapping in self.mappings.items() if self._is_filter(mapping.type)}
 
     def _dump_mappings(self,  mappings: Dict):
         """
@@ -93,7 +98,8 @@ class Index(object):
         if os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
             raise Exception("Index {} already existed".format(self.index_id))
 
-        return json.dump(mappings, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
+        temp = {k: v.dict() for k, v in mappings.items()}
+        return json.dump(temp, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
 
     def _fuse_results(self, do_filter: bool, ranks: Dict, filters: Set, top_k: int) -> List[Dict]:
         """
@@ -125,29 +131,31 @@ class Index(object):
 
         return docs
 
-    def _get_sub_index(self, field: str, mapping: Dict) -> IndexBase:
+    def _get_sub_index(self, field: str, mapping) -> IndexBase:
         if field not in self._clients:
             if field == FT.ID:
-                self._clients[field] = KVIndex(self.index_dir, self._sub_index(FT.ID), mapping)
+                self._clients[field] = KVIndex(self.index_dir, self._sub_index_id(FT.ID), mapping)
 
             elif field == IT.FILTER:
-                self._clients[field] = FilterIndex(self.index_dir, self._sub_index(field), mapping)
+                self._clients[field] = FilterIndex(self.index_dir, self._sub_index_id(field), mapping)
 
-            elif mapping['type'] == FT.TEXT and 'index' in mapping:
-                sub_id = self._sub_index(field)
-                if mapping['index'] == IT.BM25:
+            elif mapping.type == FT.TEXT:
+                mapping: TextMapping = mapping
+                sub_id = self._sub_index_id(field)
+                index_mapping = parse_mapping(mapping.index_mapping)
+                if mapping.index == IT.BM25:
                     self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
-                elif mapping['index'] == IT.VECTOR:
-                    self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
-                elif mapping['index'] == IT.INVERTED:
-                    self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                elif mapping.index == IT.VECTOR:
+                    self._clients[field] = VectorIndex(self.index_dir, sub_id, index_mapping)
+                elif mapping.index == IT.INVERTED:
+                    self._clients[field] = IvIndex(self.index_dir, sub_id, index_mapping)
 
-            elif mapping['type'] == FT.VECTOR:
-                sub_id = self._sub_index(field)
+            elif mapping.type == FT.VECTOR:
+                sub_id = self._sub_index_id(field)
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
-            elif mapping['type'] == FT.TERM_SCORE:
-                sub_id = self._sub_index(field)
+            elif mapping.type == FT.TERM_SCORE:
+                sub_id = self._sub_index_id(field)
                 self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
 
         return self._clients.get(field)
@@ -158,7 +166,7 @@ class Index(object):
 
     @property
     def id_index(self) -> KVIndex:
-        return self._get_sub_index(FT.ID, {'type': FT.ID})
+        return self._get_sub_index(FT.ID, BasicMapping(type=FT.ID))
 
     def create_index(self, mappings: Dict) -> None:
         """
@@ -171,26 +179,22 @@ class Index(object):
             os.mkdir(self.index_dir)
 
         # assign the internal field and overwrite
-        mappings[FT.ID] = {'type': FT.ID}
+        mappings[FT.ID] = BasicMapping(type=FT.ID)
 
-        # add q_processor
-        for field, mapping in mappings.items():
-            if mapping['type'] == FT.TEXT and 'index' in mapping:
-                if 'q_processor' not in mapping:
-                    mapping['q_processor'] = mapping['processor']
+        # validate format by parsing the dicts
+        for k, mapping in mappings.items():
+            mappings[k] = parse_mapping(mapping)
 
-                if 'q_model_id' not in mapping and 'model_id' in mapping:
-                    mapping['q_model_id'] = mapping['model_id']
         # dump the mapping to disk
         self._dump_mappings(mappings)
 
         # initialize the index
         self.id_index.create_index()
         self.filter_index.create_index()
-        for field, mapping in mappings.items():
+        for field, mapping in self.mappings.items():
             if field == FT.ID:
                 continue
-            if self._is_filter(mapping['type']):
+            if self._is_filter(mapping.type):
                 continue
             s_index = self._get_sub_index(field, mapping)
             if s_index:
@@ -203,16 +207,13 @@ class Index(object):
         self.logger.info("Removing index {}".format(self.index_id))
 
         for field, mapping in self.mappings.items():
-            try:
-                if (mapping['type'] == FT.TEXT and 'index' in mapping) or \
-                        mapping['type'] == FT.VECTOR:
-                    self._get_sub_index(field, mapping).delete_index()
-            except Exception as e:
-                self.logger.error(e)
+            if mapping.type in FT.MATCH_TYPES:
+                self._get_sub_index(field, mapping).delete_index()
 
         # first delete each sub-index
         self.id_index.delete_index()
         self.filter_index.delete_index()
+
         # remove the whole folder
         try:
             shutil.rmtree(self.index_dir)
@@ -220,7 +221,7 @@ class Index(object):
             self.logger.info(e)
 
     def get_mappings(self) -> Dict:
-        return json.loads(json.dumps(self.mappings))
+        return {k: v.dict() for k, v in self.mappings}
 
     def size(self) -> int:
         return self.id_index.size()
@@ -266,23 +267,23 @@ class Index(object):
                     valid_ids.append(d[FT.ID])
                     valid_docs.append(d)
 
-                if mapping['type'] == FT.TEXT and 'index' in mapping:
-
-                    pipe = Pipeline(self.mappings[field]['processor'])
-                    kwargs = {'lang': self.mappings[field]['lang']}
+                if mapping.type == FT.TEXT:
+                    mapping: TextMapping = mapping
+                    pipe = Pipeline(mapping.processor)
+                    kwargs = {'lang': mapping.lang, 'is_query': False}
                     annos = pipe.run([b_d[field] for b_d in valid_docs], **kwargs)
 
-                    if mapping['index'] == IT.BM25:
+                    if mapping.index == IT.BM25:
                         self._get_sub_index(field, mapping).add(annos, valid_ids)
 
-                    elif mapping['index'] == IT.INVERTED:
+                    elif mapping.index == IT.INVERTED:
                         self._get_sub_index(field, mapping).add(annos, valid_ids)
 
-                elif mapping['type'] == FT.VECTOR:
+                elif mapping.type == FT.VECTOR:
                     vectors = [b_d[field] for b_d in valid_docs]
                     self._get_sub_index(field, mapping).add(vectors, valid_ids)
 
-                elif mapping['type'] == FT.TERM_SCORE:
+                elif mapping.type== FT.TERM_SCORE:
                     ts = [b_d[field] for b_d in valid_docs]
                     self._get_sub_index(field, mapping).add(ts, valid_ids)
 
@@ -294,8 +295,7 @@ class Index(object):
         self.filter_index.delete(doc_ids)
 
         for field, mapping in self.mappings.items():
-            if (mapping['type'] == FT.TEXT and 'index' in mapping) or \
-                    mapping['type'] == FT.VECTOR:
+            if mapping.type in FT.MATCH_TYPES:
                 self._get_sub_index(field, mapping).delete(doc_ids)
 
     def read_docs(self, doc_ids: Union[int, List[int]]) -> Union[Dict, List]:
@@ -321,16 +321,15 @@ class Index(object):
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
-    def _field_query(self, mappings, field, value, rank_k):
-        mapping = mappings[field]
-        if field == FT.ID or self._is_filter(mapping['type']):
+    def _query_field(self, mapping, field: str, value, rank_k: int):
+        if field == FT.ID or self._is_filter(mapping.type):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return []
 
-        if mapping['type'] == FT.TEXT and 'index' in mapping:
-            pipe = Pipeline(mappings[field]['q_processor'])
-            kwargs = {'lang': mappings[field]['lang'],
-                      'model_id': mappings[field].get('q_model_id')}
+        if mapping.type == FT.TEXT:
+            mapping: TextMapping = mapping
+            pipe = Pipeline(mapping.q_processor)
+            kwargs = {'lang': mapping.lang, 'is_query': True}
             value = pipe.run(value, **kwargs)
 
         temp = self._get_sub_index(field, mapping).rank(value, rank_k)
@@ -367,7 +366,8 @@ class Index(object):
 
         if len(q_match) > 0:
             n_job = max(1, min(5, len(q_match)))
-            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._field_query)(self.mappings, field, value, rank_k)
+            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
+                                                                                          field, value, rank_k)
                                              for field, value in q_match.items())
 
             for temp in results:

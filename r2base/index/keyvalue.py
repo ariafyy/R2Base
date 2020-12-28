@@ -1,6 +1,7 @@
 from r2base.index import IndexBase
 from sqlitedict import SqliteDict
 from r2base import IndexType as IT
+from r2base.mappings import BasicMapping
 import logging
 from typing import Dict, Union, List, Any
 import os
@@ -11,7 +12,7 @@ class KVIndex(IndexBase):
     type = IT.LOOKUP
     logger = logging.getLogger(__name__)
 
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping: BasicMapping):
         super().__init__(root_dir, index_id, mapping)
         self._client = None
 

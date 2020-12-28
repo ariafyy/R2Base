@@ -1,5 +1,6 @@
 from r2base.index import IndexBase
 from r2base import IndexType as IT
+from r2base.mappings import TextMapping
 from typing import List, Tuple, Union, Dict
 import os
 import shutil
@@ -10,7 +11,7 @@ import tantivy
 class TyBM25Index(IndexBase):
     type = IT.BM25
 
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping: TextMapping):
         super().__init__(root_dir, index_id, mapping)
         self._writer = None
         self._searcher = None

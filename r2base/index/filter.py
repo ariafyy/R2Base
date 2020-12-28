@@ -1,6 +1,7 @@
 from r2base.index import IndexBase
 from r2base import IndexType as IT
 from r2base import FieldType as FT
+from r2base.mappings import BasicMapping
 import json
 from typing import Dict, Union, List, Set
 import os
@@ -10,7 +11,7 @@ import sqlite3
 class FilterIndex(IndexBase):
     type = IT.FILTER
 
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping: Dict[str, BasicMapping]):
         super().__init__(root_dir, index_id, mapping)
         self.fields = sorted(list(mapping.keys()))
         self._client = None
@@ -29,15 +30,15 @@ class FilterIndex(IndexBase):
         schema = ['_id INTEGER']
         for field in self.fields:
             mapping = self.mapping[field]
-            if mapping['type'] == FT.KEYWORD:
+            if mapping.type == FT.KEYWORD:
                 schema.append('{} TEXT'.format(field))
-            elif mapping['type'] == FT.FLOAT:
+            elif mapping.type == FT.FLOAT:
                 schema.append('{} REAL'.format(field))
-            elif mapping['type'] == FT.INT:
+            elif mapping.type == FT.INT:
                 schema.append('{} INTEGER'.format(field))
-            elif mapping['type'] == FT.DATE:
+            elif mapping.type == FT.DATE:
                 schema.append('{} DATE'.format(field))
-            elif mapping['type'] == FT.DATETIME:
+            elif mapping.type == FT.DATETIME:
                 schema.append('{} TIMESTAMP'.format(field))
             else:
                 raise Exception("Unknown field type {}".format(json.dumps(mapping)))
@@ -91,6 +92,7 @@ class FilterIndex(IndexBase):
     def select(self, query: Union[str, None], valid_ids: List[int] = None, size: int = 10000) -> Set[int]:
 
         c = self.client.cursor()
+
         if valid_ids is None:
             if query == "" or query is None:
                 query = 'SELECT * FROM data'
@@ -98,6 +100,7 @@ class FilterIndex(IndexBase):
                 query = 'SELECT * FROM data WHERE {}'.format(query.strip())
 
             cursor = c.execute(query)
+
         else:
             valid_ids = [int(x) for x in valid_ids]
             if query == "" or query is None:
@@ -109,11 +112,7 @@ class FilterIndex(IndexBase):
 
         results = set()
         for row in cursor.fetchmany(size):
-            if valid_ids is None:
-                results.add(row[0])
-            else:
-                if row[0] in valid_ids:
-                    results.add(row[0])
+            results.add(int(row[0]))
 
         return results
 

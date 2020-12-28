@@ -1,30 +1,30 @@
 from r2base import IndexType as IT
-from r2base.config import EnvVar
 from r2base.index.util_bases import EsBaseIndex
+from r2base.config import EnvVar
+from r2base.mappings import TextMapping
 from typing import List, Tuple, Union, Dict
-from elasticsearch import Elasticsearch, RequestsHttpConnection
 import numpy as np
+
 
 class EsBM25Index(EsBaseIndex):
     type = IT.BM25
 
     def create_index(self) -> None:
-        if self.es.indices.exists(index=self.index_id):
-            raise Exception("Index {} already existed".format(self.index_id))
+        mapping: TextMapping = self.mapping
         params = {"timeout": '100s'}
-        config = {
-            'mappings': {
-                'properties': {
-                    'text': {'type': 'text'}
-                }
+        if 'tokenize' in mapping.processor:
+            self.logger.info("Detected customized tokenizer. Using cutter_analyzer")
+            config = {
+                'mappings': {'properties': {'text': {'type': 'text', "analyzer": "cutter_analyzer"}}},
+                'settings': EnvVar.ES_SETTING
             }
-        }
-        resp = self.es.indices.create(index=self.index_id, ignore=400, body=config, params=params)
-        if resp.get('acknowledged', False) is False:
-            self.logger.error(resp)
-            raise Exception("Error in creating index")
         else:
-            self.logger.info("Index {} is created".format(self.index_id))
+            config = {
+                'mappings': {'properties': {'text': {'type': 'text'}}},
+                'settings': EnvVar.ES_SETTING
+            }
+
+        self._make_index(self.index_id, config, params)
 
     def add(self, data: Union[List[str], str], doc_ids: Union[List[int], int]) -> None:
         if type(data) is str:
@@ -56,24 +56,14 @@ class EsInvertedIndex(EsBaseIndex):
     type = IT.INVERTED
 
     def create_index(self) -> None:
-        if self.es.indices.exists(index=self.index_id):
-            raise Exception("Index {} already existed".format(self.index_id))
         params = {"timeout": '100s'}
         config = {
             'mappings': {
-                'properties': {
-                        "term_scores": {
-                            "type": "rank_features"
-                        },
-                }
-            }
+                'properties': {"term_scores": {"type": "rank_features"}}
+            },
+            'settings': EnvVar.ES_SETTING
         }
-        resp = self.es.indices.create(index=self.index_id, ignore=400, body=config, params=params)
-        if resp.get('acknowledged', False) is False:
-            self.logger.error(resp)
-            raise Exception("Error in creating index")
-        else:
-            self.logger.info("Index {} is created".format(self.index_id))
+        self._make_index(self.index_id, config, params)
 
     def add(self, data: Union[List[Dict[str, float]], Dict[str, float]], doc_ids: Union[List[int], int]) -> None:
         if type(doc_ids) is int:
