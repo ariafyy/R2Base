@@ -20,7 +20,7 @@ class EngineBase(object):
             self.indexes.pop(index_id, None)
 
     def get_index(self, index_id: str, upsert=False) -> Index:
-        self.sync_index(index_id)
+        # self.sync_index(index_id)
 
         if index_id not in self.indexes and upsert:
             if len(self.indexes) > EnvVar.MAX_NUM_INDEX:
