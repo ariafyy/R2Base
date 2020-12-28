@@ -16,18 +16,21 @@ class EsVectorIndex(EsBaseIndex):
 
     def create_index(self):
         mapping: VectorMapping = self.mapping
+        setting = EnvVar.ES_SETTING
+        setting.pop('analysis')
         params = {"timeout": '100s'}
         config = {
             'mappings': {
                 'properties': {'vector': {'type': 'dense_vector', 'dims': self._num_dim}}
             },
-            'settings': EnvVar.ES_SETTING
+            'settings': setting
         }
         self._make_index(self.index_id, config, params)
 
     def add(self, vector: Union[ndarray, List], doc_ids: Union[List[int], int]):
         if type(vector) is list:
             vector = np.array(vector)
+        vector = vector.astype('float32')
 
         if len(vector.shape) == 1:
             vector = vector.reshape(1, -1)
@@ -57,7 +60,7 @@ class EsVectorIndex(EsBaseIndex):
         """
         if type(vector) is ndarray:
             vector = vector.tolist()
-
+        vector = [float(v) for v in vector]
         assert len(vector) == self._num_dim
         query = {
             'query': {
@@ -76,20 +79,20 @@ class EsVectorIndex(EsBaseIndex):
         return results
 
 if __name__ == '__main__':
-    index = EsVectorIndex('..', 'test', VectorMapping(num_dim=800))
-    """
+    index = EsVectorIndex('..', 'test', VectorMapping(type='vector', num_dim=4))
+
     index.delete_index()
     index.create_index()
 
-    for i in range(100):
+    for i in range(10):
         print(i)
         ids = [i*100+j for j in range(100)]
-        index.add(np.random.random(800*100).reshape(100, 800),ids)
+        index.add(np.random.random(4*100).reshape(100, 4),ids)
     import time
     time.sleep(2)
-    """
+
     print(index.size())
     #index.delete([1,2,33])
     #index.delete([5061])
     print(index.size())
-    print(index.rank(np.random.random(800*1), 10))
+    print(index.rank(np.random.random(4*1), 10))

@@ -1,48 +1,58 @@
 import requests
 import os
 
+
 host_url = "http://localhost:8000"
 
+
 def delete_index(index_id):
-    requests.delete(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)))
+    res = requests.delete(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)))
+    if res.status_code > 300:
+        raise Exception(res.json())
 
 
 def make_index(index_id, mapping):
-    requests.delete(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)))
     res = requests.post(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)),
                         json={'mappings': mapping})
+    if res.status_code > 300:
+        raise Exception(res.json())
     return res.json()
 
 
 def add_docs(index_id, docs):
     res = requests.post(url=os.path.join(host_url, 'r2base/v1/index/{}/docs'.format(index_id)),
                         json={'docs': docs, 'batch_siz': 100})
+    if res.status_code > 300:
+        raise Exception(res.json())
     return res.json()
 
 
 def search(index_id, query):
     res = requests.post(url=os.path.join(host_url, 'r2base/v1/search/{}/query'.format(index_id)),
                         json={'query': query})
+    if res.status_code > 300:
+        raise Exception(res.json())
     return res.json()
 
 
 if __name__ == "__main__":
     mapping = {
         'doc_id': {'type': 'keyword'},
-        'tss': {'type': 'term_score'}
+        'v': {'type': 'vector', 'num_dim': 3}
     }
-    index = 'ts-testt'
+    index = 'v-test'
     docs = []
-    docs.append({'doc_id': '1', 'tss': {'a': 1.1, 'b': 1.2, 'c': 1.3}})
-    docs.append({'doc_id': '2', 'tss': {'b': 1.1, 'c': 1.2, 'd': 1.3}})
-    docs.append({'doc_id': '3', 'tss': {'c': 1.1, 'd': 1.2, 'f': 1.3}})
+    docs.append({'doc_id': '1', 'v': [1.1, 2.2, 3.3]})
+    docs.append({'doc_id': '2', 'v': [4.4,5.5,6.6]})
+    docs.append({'doc_id': '3', 'v': [7,8,9]})
 
     delete_index(index)
     make_index(index, mapping)
     add_docs(index, docs)
     import time
     time.sleep(2)
-    print(search(index, {'match': {'tss': ['a', 'b']}}))
+    print(search(index, {'match': {'v': [1,2,3]}}))
+    print(search(index, {'match': {'v': [3,2,1]}}))
 
 
 
