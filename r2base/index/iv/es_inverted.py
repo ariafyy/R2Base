@@ -1,9 +1,8 @@
 from r2base import IndexType as IT
-from r2base.config import EnvVar
 from r2base.index.util_bases import EsBaseIndex
 from typing import List, Tuple, Union, Dict
-from elasticsearch import Elasticsearch, RequestsHttpConnection
 import numpy as np
+
 
 class EsBM25Index(EsBaseIndex):
     type = IT.BM25

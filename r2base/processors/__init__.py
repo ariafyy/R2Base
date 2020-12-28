@@ -9,7 +9,6 @@ processor_map = {
     'wordpiece': TransformerTokenizer(),
     'lower': LowerCase(),
     'remove_num': NoNumber(),
-    'tokenize_stem': None,
     'onnx_encode': None,
     'py_encode': TransformerEncoders()
 }

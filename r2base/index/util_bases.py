@@ -1,13 +1,15 @@
 from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.utils import chunks
+from r2base.mappings import TextMapping, BasicMapping, VectorMapping
 from typing import List, Tuple, Union, Dict
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch import helpers as es_helpers
 import logging
 
+
 class EsBaseIndex(IndexBase):
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping: Union[BasicMapping, TextMapping, VectorMapping]):
         super().__init__(root_dir, index_id, mapping)
         self.es = Elasticsearch(
             hosts=[EnvVar.ES_URL],

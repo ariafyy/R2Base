@@ -2,6 +2,7 @@ import numpy as np
 from numpy import ndarray
 from r2base.index import IndexBase
 from r2base import IndexType as IT
+from r2base.mappings import VectorMapping
 import faiss
 from typing import Dict, Union, List, Tuple
 import os
@@ -11,9 +12,9 @@ class FaissVectorIndex(IndexBase):
     type = IT.VECTOR
     data_name = 'data.index'
 
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping: VectorMapping):
         super().__init__(root_dir, index_id, mapping)
-        self._num_dim = mapping['num_dim']
+        self._num_dim = mapping.num_dim
         self._index = None
         self.ivf_th = 10000
 

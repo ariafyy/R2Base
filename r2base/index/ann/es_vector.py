@@ -2,15 +2,16 @@ import numpy as np
 from numpy import ndarray
 from r2base import IndexType as IT
 from r2base.index.util_bases import EsBaseIndex
+from r2base.mappings import VectorMapping
 from typing import Dict, Union, List, Tuple
 
 
 class EsVectorIndex(EsBaseIndex):
     type = IT.VECTOR
 
-    def __init__(self, root_dir: str, index_id: str, mapping: Dict):
+    def __init__(self, root_dir: str, index_id: str, mapping: VectorMapping):
         super().__init__(root_dir, index_id, mapping)
-        self._num_dim = mapping['num_dim']
+        self._num_dim = mapping.num_dim
 
     def create_index(self):
         if self.es.indices.exists(index=self.index_id):

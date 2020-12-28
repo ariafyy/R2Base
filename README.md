@@ -30,6 +30,7 @@ Checkout
 - Add better RESTful APIs [DONE]
 - Package as Docker image [DONE]
 - Use ONNX instead of pytorch for models 
+- Support BM25 for CJK languages
 - Use faster BERT tokenizer 
     
  

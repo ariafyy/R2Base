@@ -11,6 +11,10 @@ class FieldType(object):
     DATE = "date"
     DATETIME = "datetime"
 
+    FILTER_TYPES = {KEYWORD, FLOAT, INT, DATE, DATETIME}
+    MATCH_TYPES = {TERM_SCORE, TEXT, VECTOR}
+    ID_TYPES = {ID}
+
 
 class IndexType(object):
     INVERTED = "inverted"
