@@ -23,15 +23,16 @@ Checkout
     http://localhost:8000/docs
 
 ### TODO
+- Support reader 
+- Use ONNX instead of PyTorch for models 
+- Improve stabtility 
+- Use faster BERT tokenizer 
 - Support basic operations, e.g. CRUD, filters etc [DONE]
 - Support native SPARTA in Tantivy [DONE]
 - Support vector search using FASISS [DONE]
-- Support reader 
 - Add better RESTful APIs [DONE]
 - Package as Docker image [DONE]
-- Use ONNX instead of pytorch for models 
-- Support BM25 for CJK languages
-- Use faster BERT tokenizer 
+- Support BM25 for CJK languages [DONE for Chinese]
     
  
 
