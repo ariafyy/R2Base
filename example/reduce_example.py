@@ -65,7 +65,29 @@ if __name__ == "__main__":
             }
         }
     }
+    print(search(index, query))
 
+    query = {
+        'match': {},
+        "exclude": ['v'],
+        'reduce': {
+            'small_v': [
+                {
+                    'method': "pca",
+                    'input': "v",
+                    "kwargs": {
+                        "n_components": 20
+                    }
+                },
+                {
+                    'method': "umap",
+                    "kwargs": {
+                        "n_components": 2
+                    }
+                }
+            ]
+        }
+    }
     print(search(index, query))
 
 

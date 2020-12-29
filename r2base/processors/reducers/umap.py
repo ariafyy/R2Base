@@ -25,6 +25,9 @@ class UMAPReducer(ProcessorBase):
         umap_embeddings : np.ndarray
             The reduced embeddings
         """
+        if embeddings.shape[1] <= n_components:
+            return embeddings
+
         umap_model = umap.UMAP(n_neighbors=n_neighbors,
                                n_components=n_components,
                                min_dist=umap_min_dist,

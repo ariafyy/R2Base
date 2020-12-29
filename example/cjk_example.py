@@ -25,7 +25,7 @@ if __name__ == "__main__":
                  }
     }
     docs = []
-    chunk_size = 100
+    chunk_size = 10
     index = 'wiki-zh'
     indexer.delete_index(index)
     indexer.create_index(index, mapping)
@@ -40,3 +40,4 @@ if __name__ == "__main__":
                 buffer = []
 
     print("DONE")
+    print(ranker.query(index, {'match': {'text': "中国"}}))
