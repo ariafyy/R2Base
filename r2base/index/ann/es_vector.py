@@ -63,6 +63,7 @@ class EsVectorIndex(EsBaseIndex):
         vector = [float(v) for v in vector]
         assert len(vector) == self._num_dim
         query = {
+            "_source": False,
             'query': {
                 "script_score": {
                     'query': {"match_all": {}},

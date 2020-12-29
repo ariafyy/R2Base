@@ -5,6 +5,7 @@ from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
+from r2base.processors.reducer import Reducer
 from r2base.mappings import parse_mapping, BasicMapping, TextMapping
 from r2base.processors.pipeline import Pipeline
 from r2base.utils import chunks, get_uid
@@ -354,6 +355,7 @@ class Index(object):
         """
         q_match = q.get('match', {})
         q_filter = q.get('filter', None)
+        q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
         exclude = q.get('exclude', [])
         include = q.get('include', [])
@@ -386,6 +388,9 @@ class Index(object):
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
+
+        if q_reduce is not None and q_reduce:
+            docs = Reducer().run(q_reduce, docs)
 
         # include has higher priority than exclude
         if len(include) > 0:
