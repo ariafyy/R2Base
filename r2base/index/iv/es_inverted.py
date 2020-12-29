@@ -12,16 +12,18 @@ class EsBM25Index(EsBaseIndex):
     def create_index(self) -> None:
         mapping: TextMapping = self.mapping
         params = {"timeout": '100s'}
+        setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
+
         if 'tokenize' in mapping.processor:
             self.logger.info("Detected customized tokenizer. Using cutter_analyzer")
             config = {
                 'mappings': {'properties': {'text': {'type': 'text', "analyzer": "cutter_analyzer"}}},
-                'settings': EnvVar.ES_SETTING
+                'settings': setting
             }
         else:
             config = {
                 'mappings': {'properties': {'text': {'type': 'text'}}},
-                'settings': EnvVar.ES_SETTING
+                'settings': setting
             }
 
         self._make_index(self.index_id, config, params)
@@ -57,11 +59,13 @@ class EsInvertedIndex(EsBaseIndex):
 
     def create_index(self) -> None:
         params = {"timeout": '100s'}
+        setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
+
         config = {
             'mappings': {
                 'properties': {"term_scores": {"type": "rank_features"}}
             },
-            'settings': EnvVar.ES_SETTING
+            'settings': setting
         }
         self._make_index(self.index_id, config, params)
 

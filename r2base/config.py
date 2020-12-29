@@ -26,6 +26,12 @@ class EnvVar(object):
     MAX_NUM_INDEX = int(os.environ.get('MAX_NUM_INDEX', 100))
     INDEX_BATCH_SIZE = int(os.environ.get('INDEX_BATCH_SIZE', 100))
 
+    @classmethod
+    def deepcopy(cls, x):
+        return json.loads(json.dumps(x))
 
+
+if __name__ == "__main__":
+    print(EnvVar.deepcopy(EnvVar.ES_SETTING))
 
 
