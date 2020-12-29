@@ -35,7 +35,7 @@ def wiki2doc(l):
 
 
 if __name__ == "__main__":
-    path = "example/tiny_wiki.jsonl"
+    path = "data/tiny_wiki.jsonl"
     indexer = Indexer()
     ranker = Ranker()
 
@@ -43,8 +43,7 @@ if __name__ == "__main__":
         'title': {'type': 'keyword'},
         'text': {'type': 'text',
                  'lang': 'en',
-                 'index': 'bm25',
-                 'processor': 'nothing'
+                 'index': 'bm25'
                  }
     }
     docs = []

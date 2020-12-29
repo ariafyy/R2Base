@@ -16,7 +16,7 @@ class EsVectorIndex(EsBaseIndex):
 
     def create_index(self):
         mapping: VectorMapping = self.mapping
-        setting = EnvVar.ES_SETTING
+        setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
         setting.pop('analysis')
         params = {"timeout": '100s'}
         config = {
