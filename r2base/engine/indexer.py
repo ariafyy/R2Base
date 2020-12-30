@@ -38,7 +38,7 @@ class Indexer(EngineBase):
         return self.get_index(index_id).read_docs(doc_ids)
 
     def delete_docs(self, index_id: str, doc_ids: Union[int, List[int]]):
-        return self.get_index(index_id).read_docs(doc_ids)
+        return self.get_index(index_id).delete_docs(doc_ids)
 
     def update_docs(self, index_id: str,
                     docs: Union[Dict, List[Dict]],
