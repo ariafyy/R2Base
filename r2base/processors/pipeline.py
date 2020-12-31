@@ -1,7 +1,8 @@
-from typing import Dict, Union, List
+from typing import Dict, List
 from r2base.processors import processor_map
 import numpy as np
 import logging
+
 
 class Pipeline(object):
 
@@ -30,12 +31,11 @@ class ReducePipeline(object):
 
             for d_id, d in enumerate(data):
                 try:
-                    if d_id == 3:
-                        continue
                     input_data.append(d['_source'][src_field])
                     valid_id_map[d_id] = len(input_data)-1
                 except Exception as e:
-                    self.logger.warn(e)
+                    self.logger.error("Bad data skipped for dim reduction")
+                    self.logger.error(e)
 
             input_data = np.array(input_data)
             output_data = input_data
