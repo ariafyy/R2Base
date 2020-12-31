@@ -1,7 +1,7 @@
 from typing import Dict, Union, List
 from r2base.processors import processor_map
 import numpy as np
-
+import logging
 
 class Pipeline(object):
 
@@ -17,6 +17,8 @@ class Pipeline(object):
 
 
 class ReducePipeline(object):
+    logger = logging.getLogger(__name__)
+
     def run(self, query: Dict, data: List):
         for dest_f, pack in query.items():
             if type(pack) is dict:
@@ -24,8 +26,16 @@ class ReducePipeline(object):
 
             src_field = pack[0]['input']
             input_data = []
+            valid_id_map = dict()
+
             for d_id, d in enumerate(data):
-                input_data.append(d['_source'][src_field])
+                try:
+                    if d_id == 3:
+                        continue
+                    input_data.append(d['_source'][src_field])
+                    valid_id_map[d_id] = len(input_data)-1
+                except Exception as e:
+                    self.logger.warn(e)
 
             input_data = np.array(input_data)
             output_data = input_data
@@ -39,7 +49,8 @@ class ReducePipeline(object):
             for idx, d in enumerate(data):
                 if '_reduce' not in d:
                     d['_reduce'] = {}
-                d['_reduce'][dest_f] = output_data[idx].tolist()
+                if idx in valid_id_map:
+                    d['_reduce'][dest_f] = output_data[valid_id_map[idx]].tolist()
 
         return data
 
