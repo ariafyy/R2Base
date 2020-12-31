@@ -43,8 +43,8 @@ if __name__ == "__main__":
     index = 'v-test'
     docs = []
     docs.append({'doc_id': '1', 'v': [1.1, 2.2, 3.3]})
-    docs.append({'doc_id': '2', 'v': [4.4,5.5,6.6]})
-    docs.append({'doc_id': '3', 'v': [7,8,9]})
+    docs.append({'doc_id': '2', 'v': [4.4, 5.5, 6.6]})
+    docs.append({'doc_id': '3', 'v': [7, 8, 9]})
 
     delete_index(index)
     make_index(index, mapping)

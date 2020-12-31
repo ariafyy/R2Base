@@ -1,21 +1,23 @@
 from r2base.index.filter import FilterIndex
 from r2base.index.keyvalue import KVIndex
-from r2base.index.iv.ty_inverted import TyBM25Index
+from r2base.index.iv.es_inverted import EsBM25Index
 from r2base.index.iv.es_inverted import EsInvertedIndex
-from r2base.index.ann.faiss_vector import FaissVectorIndex
+from r2base.index.ann.es_vector import EsVectorIndex
 from r2base.index.index import Index
+from r2base.mappings import BasicMapping, VectorMapping, TextMapping
 import pytest
+import time
 
 WORK_DIR = "."
 
 
 def test_filter_index():
     c = FilterIndex(WORK_DIR, 'test_filter_index',
-                    {'f1': {'type': "keyword"},
-                     'f2': {"type": "integer"},
-                     'f3': {"type": "float"},
-                     "f4": {'type': "date"},
-                     "f5": {'type': "datetime"}})
+                    {'f1': BasicMapping(type='keyword'),
+                     'f2': BasicMapping(type='integer'),
+                     'f3': BasicMapping(type='float'),
+                     "f4": BasicMapping(type='date'),
+                     "f5": BasicMapping(type='datetime')})
 
     c.delete_index()
     c.create_index()
@@ -39,52 +41,58 @@ def test_filter_index():
 
 
 def test_kv():
-    c = KVIndex(WORK_DIR, 'test_kv', {})
+    c = KVIndex(WORK_DIR, 'test_kv', BasicMapping(type='_id'))
     c.delete_index()
     c.create_index()
     c.set(1, '123')
     c.set(2, '456')
     c.set(3, '789')
-    assert c.size() == 3
+    c.set([4, 5, 6], ['789', '8910', '901'])
+    assert c.size() == 6
     c.delete(3)
-    assert c.size() == 2
+    assert c.size() == 5
     assert c.get(1) == '123'
+    assert c.get([1,2]) == ['123', '456']
     assert len(c.sample(2)) == 2
     c.delete_index()
 
 
 def test_bm25():
-    i = TyBM25Index(WORK_DIR, 'test_bm25', {})
+    i = EsBM25Index(WORK_DIR, 'test_bm25', TextMapping(type='text', index='bm25', lang='zh'))
     i.delete_index()
     i.create_index()
-    i.add('I am from China. My name is Tony.', 1)
-    i.add('我 来 自 北京，叫做 赵天成', 2)
-    i.add('我 来 自 北京，叫做 赵天成', 3)
-    assert i.size() == 3
-    assert len(i.rank('name', 10)) == 1
-    assert len(i.rank('我', 10)) == 2
-    i.delete(1)
-    assert i.size() == 2
+    i.add('我/来自/北京，叫做/赵天成', 1)
+    i.add('我/来自/杭州，叫做/赵天成', 2)
+    i.add(['我/来自/北京', '叫做/赵天成'], [3, 4])
+    time.sleep(2)
+    assert i.size() == 4
     assert len(i.rank('name', 10)) == 0
+    assert len(i.rank('我', 10)) == 3
+    i.delete([1, 2])
+    time.sleep(2)
+    assert i.size() == 2
+    assert len(i.rank('北京', 10)) == 1
     i.delete_index()
 
 
 def test_vector():
-    index = FaissVectorIndex(WORK_DIR, 'test_vector', {'num_dim': 3})
+    index = EsVectorIndex(WORK_DIR, 'test_vector', VectorMapping(type='vector', num_dim=3))
     index.delete_index()
     index.create_index()
     index.add([1, 2, 3], 1)
     index.add([3, 2, 1], 2)
     index.add([[1, 2, 3], [4, 5, 6]], [3, 4])
+    time.sleep(2)
     assert index.size() == 4
     assert index.rank([1, 2, 3], 10)[0][0] == pytest.approx(1.0)
-    index.delete([1])
+    index.delete(1)
+    time.sleep(2)
     assert index.size() == 3
     index.delete_index()
 
 
 def test_inverted():
-    i = EsInvertedIndex(WORK_DIR, 'test_es_iv', {})
+    i = EsInvertedIndex(WORK_DIR, 'test_es_iv', BasicMapping(type='inverted'))
     i.delete_index()
     i.create_index()
     i.add({'a': 1, 'b': 2}, 1)
@@ -97,11 +105,13 @@ def test_inverted():
     assert len(docs) == 2
     assert docs[0][0] == pytest.approx(2.0, rel=0.1)
     i.delete(1)
+    time.sleep(2)
     assert i.size() == 3
     docs = i.rank(['a', 'c'], 10)
     assert len(docs) == 1
     assert docs[0][0] == pytest.approx(5.0, rel=0.1)
     i.delete_index()
+
 
 def test_index():
     i = Index(WORK_DIR, 'test_index')
