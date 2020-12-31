@@ -19,10 +19,10 @@ class KVIndex(IndexBase):
     @property
     def client(self):
         # if self._client is None:
+        # return self._client
         return SqliteDict(os.path.join(self.work_dir, 'db.sqlite'),
                           tablename=self.index_id,
                           autocommit=False)
-        # return self._client
 
     def create_index(self) -> None:
         if not os.path.exists(self.work_dir):
@@ -30,13 +30,14 @@ class KVIndex(IndexBase):
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
     def delete_index(self) -> None:
+        """
         try:
             if self._client is not None:
                 self.client.close()
                 self._client = None
         except Exception as e:
             self.logger.error(e)
-
+        """
         try:
             os.remove(os.path.join(self.work_dir, 'db.sqlite'))
             os.removedirs(self.work_dir)
@@ -71,12 +72,12 @@ class KVIndex(IndexBase):
     def sample(self, size: int, return_value: bool = True) -> List:
         if self.size() == 0:
             return []
-
-        db_size = len(self.client)
+        client = self.client
+        db_size = len(client)
         if size >= db_size:
             random_ids = list(range(db_size))
         else:
-            random_ids = set(np.random.randint(0, len(self.client), size))
+            random_ids = set(np.random.randint(0, len(client), size))
             attempts = 0  # in case dead loop in a case that is impossible
             while len(random_ids) < size and attempts < 1000:
                 r = np.random.randint(0, db_size)
@@ -84,7 +85,7 @@ class KVIndex(IndexBase):
                 if r not in random_ids:
                     random_ids.add(r)
         res = []
-        for key_id, key in enumerate(self.client.keys()):
+        for key_id, key in enumerate(client.keys()):
             if key_id in random_ids:
                 if return_value:
                     res.append(self.get(int(key)))
@@ -95,13 +96,13 @@ class KVIndex(IndexBase):
     def delete(self, key: Union[List[int], int]) -> Any:
         if key is None:
             return None
-
+        client = self.client
         if type(key) is int:
-            res = self.client.pop(int(key), None)
+            res = client.pop(int(key), None)
         else:
-            res = [self.client.pop(int(k), None) for k in key]
+            res = [client.pop(int(k), None) for k in key]
 
-        self.client.commit()
+        client.commit()
         return res
 
 
@@ -111,7 +112,7 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(root, idx)):
         os.mkdir(os.path.join(root, idx))
 
-    c = KVIndex('.', idx, {})
+    c = KVIndex('.', idx, BasicMapping(type='_id'))
     c.create_index()
     c.set(1, '123')
     c.set(2, '456')

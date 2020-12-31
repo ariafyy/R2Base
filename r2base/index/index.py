@@ -126,11 +126,15 @@ class Index(object):
             else:
                 filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
                 filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in filtered_ranks]
+                sources = self.id_index.get([_id for _id, s in filtered_ranks])
+                scores = [s for _id, s in filtered_ranks]
         else:
             ranks = [(k, v) for k, v in ranks.items()]
             ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-            docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in ranks]
+            sources = self.id_index.get([_id for _id, s in ranks])
+            scores = [s for _id, s in ranks]
+
+        docs = [{'_source': src, 'score': score} for src, score in zip(sources, scores)]
 
         return docs
 
@@ -253,9 +257,11 @@ class Index(object):
                 if FT.ID not in d:
                     d[FT.ID] = get_uid()
 
-                self.id_index.set(d[FT.ID], d)
                 ids.append(d[FT.ID])
                 batch_ids.append(d[FT.ID])
+
+            # save raw data
+            self.id_index.set(batch_ids, batch)
 
             # insert filter fields
             self.filter_index.add(batch, batch_ids)
@@ -306,10 +312,7 @@ class Index(object):
         :param doc_ids: read docs give doc IDs
         :return:
         """
-        if type(doc_ids) is int:
-            return self.id_index.get(doc_ids)
-        else:
-            return [self.id_index.get(dix) for dix in doc_ids]
+        return self.id_index.get(doc_ids)
 
     def update_docs(self, docs: Union[Dict, List[Dict]],
                     batch_size: int = 100,
