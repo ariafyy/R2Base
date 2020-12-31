@@ -14,13 +14,13 @@ class FilterIndex(IndexBase):
     def __init__(self, root_dir: str, index_id: str, mapping: Dict[str, BasicMapping]):
         super().__init__(root_dir, index_id, mapping)
         self.fields = sorted(list(mapping.keys()))
-        self._client = None
+        # self._client = None
 
     @property
     def client(self):
-        if self._client is None:
-            self._client = sqlite3.connect(os.path.join(self.work_dir, 'db.sqlite'))
-        return self._client
+        #if self._client is None:
+        return sqlite3.connect(os.path.join(self.work_dir, 'db.sqlite'))
+        #return self._client
 
     def create_index(self):
         if not os.path.exists(self.work_dir):

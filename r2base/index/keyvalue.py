@@ -14,15 +14,15 @@ class KVIndex(IndexBase):
 
     def __init__(self, root_dir: str, index_id: str, mapping: BasicMapping):
         super().__init__(root_dir, index_id, mapping)
-        self._client = None
+        # self._client = None
 
     @property
     def client(self):
-        if self._client is None:
-            self._client = SqliteDict(os.path.join(self.work_dir, 'db.sqlite'),
-                                      tablename=self.index_id,
-                                      autocommit=False)
-        return self._client
+        # if self._client is None:
+        return SqliteDict(os.path.join(self.work_dir, 'db.sqlite'),
+                          tablename=self.index_id,
+                          autocommit=False)
+        # return self._client
 
     def create_index(self) -> None:
         if not os.path.exists(self.work_dir):
@@ -77,7 +77,7 @@ class KVIndex(IndexBase):
             random_ids = list(range(db_size))
         else:
             random_ids = set(np.random.randint(0, len(self.client), size))
-            attempts = 0 # in case dead loop in a case that is impossible
+            attempts = 0  # in case dead loop in a case that is impossible
             while len(random_ids) < size and attempts < 1000:
                 r = np.random.randint(0, db_size)
                 attempts += 1
