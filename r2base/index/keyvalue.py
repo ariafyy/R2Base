@@ -87,10 +87,11 @@ class KVIndex(IndexBase):
         res = []
         for key_id, key in enumerate(client.keys()):
             if key_id in random_ids:
-                if return_value:
-                    res.append(self.get(int(key)))
-                else:
-                    res.append(int(key))
+                res.append(int(key))
+
+        if return_value:
+            res = self.get(res)
+
         return res
 
     def delete(self, key: Union[List[int], int]) -> Any:
