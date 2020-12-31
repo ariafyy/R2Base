@@ -50,19 +50,23 @@ class KVIndex(IndexBase):
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None
-        if type(key) is int:
-            self.client[int(key)] = value
+        client = self.client
+        if type(key) is not list:
+            client[int(key)] = value
         else:
             for k, v in zip(key, value):
-                self.client[int(k)] = v
-        self.client.commit()
+                client[int(k)] = v
+        client.commit()
 
-    def get(self, key: int) -> Union[None, Dict]:
+    def get(self, key: Union[List[int], int]) -> Union[List[Dict], Dict]:
         if key is None:
             self.logger.warning("KV does not support None key")
-            return None
-
-        return self.client.get(int(key), None)
+            return dict()
+        client = self.client
+        if type(key) is not list:
+            return client.get(int(key), dict())
+        else:
+            return [client.get(int(k), dict()) for k in key]
 
     def sample(self, size: int, return_value: bool = True) -> List:
         if self.size() == 0:

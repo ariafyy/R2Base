@@ -10,7 +10,7 @@ services:
     networks:
       - r2base
     volumes:
-      - data:/app/resources
+      - data:/app/_index
 
   es01:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.1
