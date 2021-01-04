@@ -21,6 +21,10 @@ class ReducePipeline(object):
     logger = logging.getLogger(__name__)
 
     def run(self, query: Dict, data: List):
+        if len(data) < 1:
+            self.logger.error("Too few data points ({}) for reduction".format(len(data)))
+            return data
+            
         for dest_f, pack in query.items():
             if type(pack) is dict:
                 pack = [pack]
