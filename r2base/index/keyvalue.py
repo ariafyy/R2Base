@@ -106,22 +106,34 @@ class KVIndex(IndexBase):
         client.commit()
         return res
 
+    def scroll(self, skip: int=0, limit:int=200) -> List:
+        if limit > 10000:
+            self.logger.warn("Very large limit={} detected".format(limit))
+            limit = 10000
+
+        client = self.client
+        GET_VALUES = 'SELECT value FROM "%s" WHERE rowid>"%s" ORDER BY rowid LIMIT "%s"' % (client.tablename, skip, limit)
+        res = []
+        for value in client.conn.select(GET_VALUES):
+            res.append(client.decode(value[0]))
+
+        return res
+
 
 if __name__ == "__main__":
-    root = '/Users/tonyzhao/Documents/projects/R2Base/_index'
     idx = 'kv-1'
-    if not os.path.exists(os.path.join(root, idx)):
-        os.mkdir(os.path.join(root, idx))
-
     c = KVIndex('.', idx, BasicMapping(type='_id'))
-    c.create_index()
-    c.set(1, '123')
-    c.set(2, '456')
-    c.set(3, '789')
-    print(c.get(1))
     c.delete_index()
     c.create_index()
-    c.set(1, '123')
-    c.set(2, '456')
-    c.set(3, '789')
-    print(c.get(1))
+    keys = list(range(104))
+    vals = [str(x) for x in keys]
+    c.set(keys, vals)
+
+    limit = 250
+    skip = 0
+    while True:
+        data = c.scroll(skip, limit)
+        print(len(data))
+        if len(data) == 0:
+            break
+        skip = skip + len(data)

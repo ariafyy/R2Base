@@ -233,6 +233,9 @@ class Index(object):
     def size(self) -> int:
         return self.id_index.size()
 
+    def scroll(self, skip: int=0, limit:int = 200):
+        return self.id_index.scroll(skip, limit)
+
     def add_docs(self, docs: Union[Dict, List[Dict]],
                  batch_size: int = 100,
                  show_progress:bool = False) -> List[int]:
