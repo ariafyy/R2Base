@@ -120,12 +120,11 @@ class KVIndex(IndexBase):
                          'WHERE key > "%s"' \
                          'ORDER BY key ASC LIMIT "%s"' % (client.tablename, last_key, limit)
         res = []
-        last_key = None
+        new_last_key = None
         for values in client.conn.select(GET_VALUES):
             res.append(client.decode(values[1]))
-            last_key = values[0]
-
-        return res, int(last_key)
+            new_last_key = values[0]
+        return res, int(new_last_key)
 
 
 if __name__ == "__main__":

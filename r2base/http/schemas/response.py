@@ -20,7 +20,8 @@ class DocRead(BaseModel):
 
 class ScrollRead(BaseModel):
     docs: List
-    last_key: Union[None, int]
+    last_key: int
+
 
 class IndexWrite(BaseModel):
     index: str

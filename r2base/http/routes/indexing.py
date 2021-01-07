@@ -55,7 +55,7 @@ async def post_predict(
     return MappingRead(index=index_id, mappings=indexer.get_mapping(index_id))
 
 
-@router.get("/{index_id}/scroll", response_model=DocRead, name="Scroll documents")
+@router.get("/{index_id}/scroll", response_model=ScrollRead, name="Scroll documents")
 async def scroll(
         request: Request,
         index_id: str,
@@ -64,8 +64,7 @@ async def scroll(
 ) -> ScrollRead:
     indexer: Indexer = request.app.state.indexer
     docs, new_last_key = indexer.scroll_docs(index_id, limit, last_key)
-    resp = ScrollRead(docs=docs, last_key=new_last_key)
-    return resp
+    return ScrollRead(docs=docs, last_key=new_last_key)
 
 
 @router.post("/{index_id}/docs", response_model=DocWrite, name="Add documents", status_code=status.HTTP_201_CREATED)

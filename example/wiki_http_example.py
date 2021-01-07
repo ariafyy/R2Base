@@ -4,7 +4,7 @@ import json
 import numpy as np
 
 
-host_url = "http://localhost:8000"
+host_url = "http://localhost:5678"
 
 
 def delete_index(index_id):
