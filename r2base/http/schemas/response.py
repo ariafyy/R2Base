@@ -18,6 +18,10 @@ class DocRead(BaseModel):
     docs: Union[List, Dict, None]
 
 
+class ScrollRead(BaseModel):
+    docs: List
+    last_key: Union[None, int]
+
 class IndexWrite(BaseModel):
     index: str
     action: str

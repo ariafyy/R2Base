@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
 from starlette.requests import Request
 from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
-from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList
+from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList, ScrollRead
 from r2base.engine.indexer import Indexer
+from typing import Union, Optional
 import time
 
 router = APIRouter()
@@ -58,12 +59,12 @@ async def post_predict(
 async def scroll(
         request: Request,
         index_id: str,
-        skip: int,
-        limit: int
-) -> DocRead:
+        limit: int,
+        last_key: Optional[int]=None,
+) -> ScrollRead:
     indexer: Indexer = request.app.state.indexer
-    docs = indexer.scroll_docs(index_id, skip, limit)
-    resp = DocRead(docs=docs)
+    docs, new_last_key = indexer.scroll_docs(index_id, last_key, limit)
+    resp = ScrollRead(docs=docs, last_key=new_last_key)
     return resp
 
 

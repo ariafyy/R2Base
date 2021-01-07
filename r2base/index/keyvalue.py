@@ -3,7 +3,7 @@ from sqlitedict import SqliteDict
 from r2base import IndexType as IT
 from r2base.mappings import BasicMapping
 import logging
-from typing import Dict, Union, List, Any
+from typing import Dict, Union, List, Any, Tuple
 import os
 import numpy as np
 
@@ -106,18 +106,26 @@ class KVIndex(IndexBase):
         client.commit()
         return res
 
-    def scroll(self, skip: int=0, limit:int=200) -> List:
+    def scroll(self, limit: int = 200, last_key: int = None) -> Tuple[List, int]:
         if limit > 10000:
             self.logger.warn("Very large limit={} detected".format(limit))
             limit = 10000
 
         client = self.client
-        GET_VALUES = 'SELECT value FROM "%s" WHERE rowid>"%s" ORDER BY rowid LIMIT "%s"' % (client.tablename, skip, limit)
+        if last_key is None:
+            GET_VALUES = 'SELECT key, value FROM "%s" ' \
+                         'ORDER BY key ASC LIMIT "%s"' % (client.tablename, limit)
+        else:
+            GET_VALUES = 'SELECT key, value FROM "%s" ' \
+                         'WHERE key > "%s"' \
+                         'ORDER BY key ASC LIMIT "%s"' % (client.tablename, last_key, limit)
         res = []
-        for value in client.conn.select(GET_VALUES):
-            res.append(client.decode(value[0]))
+        last_key = None
+        for values in client.conn.select(GET_VALUES):
+            res.append(client.decode(values[1]))
+            last_key = values[0]
 
-        return res
+        return res, int(last_key)
 
 
 if __name__ == "__main__":
@@ -125,15 +133,23 @@ if __name__ == "__main__":
     c = KVIndex('.', idx, BasicMapping(type='_id'))
     c.delete_index()
     c.create_index()
-    keys = list(range(104))
+    keys = list(range(10000))
     vals = [str(x) for x in keys]
     c.set(keys, vals)
 
-    limit = 250
-    skip = 0
+    import time
+
+    print("Start paging")
+    s_time = time.time()
+    limit = 200
+    counter = 0
+    last_key = None
     while True:
-        data = c.scroll(skip, limit)
-        print(len(data))
+        data, last_key = c.scroll(limit, last_key)
+        # print(len(data))
         if len(data) == 0:
+            print(last_key)
             break
-        skip = skip + len(data)
+
+
+    print(time.time() - s_time)
