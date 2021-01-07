@@ -14,15 +14,15 @@ class KVIndex(IndexBase):
 
     def __init__(self, root_dir: str, index_id: str, mapping: BasicMapping):
         super().__init__(root_dir, index_id, mapping)
-        self._client = None
+        # self._client = None
 
     @property
     def client(self):
-        if self._client is None:
-            self._client = SqliteDict(os.path.join(self.work_dir, 'db.sqlite'),
-                                      tablename=self.index_id,
-                                      autocommit=False)
-        return self._client
+        # if self._client is None:
+        # return self._client
+        return SqliteDict(os.path.join(self.work_dir, 'db.sqlite'),
+                          tablename=self.index_id,
+                          autocommit=False)
 
     def create_index(self) -> None:
         if not os.path.exists(self.work_dir):
@@ -30,13 +30,14 @@ class KVIndex(IndexBase):
             self.logger.info("Create data folder at {}".format(self.work_dir))
 
     def delete_index(self) -> None:
+        """
         try:
             if self._client is not None:
                 self.client.close()
                 self._client = None
         except Exception as e:
             self.logger.error(e)
-
+        """
         try:
             os.remove(os.path.join(self.work_dir, 'db.sqlite'))
             os.removedirs(self.work_dir)
@@ -50,72 +51,89 @@ class KVIndex(IndexBase):
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None
-        if type(key) is int:
-            self.client[int(key)] = value
+        client = self.client
+        if type(key) is not list:
+            client[int(key)] = value
         else:
             for k, v in zip(key, value):
-                self.client[int(k)] = v
-        self.client.commit()
+                client[int(k)] = v
+        client.commit()
 
-    def get(self, key: int) -> Union[None, Dict]:
+    def get(self, key: Union[List[int], int]) -> Union[List[Dict], Dict]:
         if key is None:
             self.logger.warning("KV does not support None key")
-            return None
-
-        return self.client.get(int(key), None)
+            return dict()
+        client = self.client
+        if type(key) is not list:
+            return client.get(int(key), dict())
+        else:
+            return [client.get(int(k), dict()) for k in key]
 
     def sample(self, size: int, return_value: bool = True) -> List:
         if self.size() == 0:
             return []
-
-        db_size = len(self.client)
+        client = self.client
+        db_size = len(client)
         if size >= db_size:
             random_ids = list(range(db_size))
         else:
-            random_ids = set(np.random.randint(0, len(self.client), size))
-            attempts = 0 # in case dead loop in a case that is impossible
+            random_ids = set(np.random.randint(0, len(client), size))
+            attempts = 0  # in case dead loop in a case that is impossible
             while len(random_ids) < size and attempts < 1000:
                 r = np.random.randint(0, db_size)
                 attempts += 1
                 if r not in random_ids:
                     random_ids.add(r)
         res = []
-        for key_id, key in enumerate(self.client.keys()):
+        for key_id, key in enumerate(client.keys()):
             if key_id in random_ids:
-                if return_value:
-                    res.append(self.get(int(key)))
-                else:
-                    res.append(int(key))
+                res.append(int(key))
+
+        if return_value:
+            res = self.get(res)
+
         return res
 
     def delete(self, key: Union[List[int], int]) -> Any:
         if key is None:
             return None
-
+        client = self.client
         if type(key) is int:
-            res = self.client.pop(int(key), None)
+            res = client.pop(int(key), None)
         else:
-            res = [self.client.pop(int(k), None) for k in key]
+            res = [client.pop(int(k), None) for k in key]
 
-        self.client.commit()
+        client.commit()
+        return res
+
+    def scroll(self, skip: int=0, limit:int=200) -> List:
+        if limit > 10000:
+            self.logger.warn("Very large limit={} detected".format(limit))
+            limit = 10000
+
+        client = self.client
+        GET_VALUES = 'SELECT value FROM "%s" WHERE rowid>"%s" ORDER BY rowid LIMIT "%s"' % (client.tablename, skip, limit)
+        res = []
+        for value in client.conn.select(GET_VALUES):
+            res.append(client.decode(value[0]))
+
         return res
 
 
 if __name__ == "__main__":
-    root = '/Users/tonyzhao/Documents/projects/R2Base/_index'
     idx = 'kv-1'
-    if not os.path.exists(os.path.join(root, idx)):
-        os.mkdir(os.path.join(root, idx))
-
-    c = KVIndex('.', idx, {})
-    c.create_index()
-    c.set(1, '123')
-    c.set(2, '456')
-    c.set(3, '789')
-    print(c.get(1))
+    c = KVIndex('.', idx, BasicMapping(type='_id'))
     c.delete_index()
     c.create_index()
-    c.set(1, '123')
-    c.set(2, '456')
-    c.set(3, '789')
-    print(c.get(1))
+    keys = list(range(104))
+    vals = [str(x) for x in keys]
+    c.set(keys, vals)
+
+    limit = 250
+    skip = 0
+    while True:
+        data = c.scroll(skip, limit)
+        print(len(data))
+        if len(data) == 0:
+            break
+        skip = skip + len(data)

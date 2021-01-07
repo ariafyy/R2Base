@@ -6,7 +6,7 @@ from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
 from r2base.mappings import parse_mapping, BasicMapping, TextMapping
-from r2base.processors.pipeline import Pipeline
+from r2base.processors.pipeline import Pipeline, ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
 from joblib import Parallel, delayed
@@ -126,11 +126,15 @@ class Index(object):
             else:
                 filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
                 filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in filtered_ranks]
+                sources = self.id_index.get([_id for _id, s in filtered_ranks])
+                scores = [s for _id, s in filtered_ranks]
         else:
             ranks = [(k, v) for k, v in ranks.items()]
             ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-            docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in ranks]
+            sources = self.id_index.get([_id for _id, s in ranks])
+            scores = [s for _id, s in ranks]
+
+        docs = [{'_source': src, 'score': score} for src, score in zip(sources, scores)]
 
         return docs
 
@@ -229,6 +233,9 @@ class Index(object):
     def size(self) -> int:
         return self.id_index.size()
 
+    def scroll(self, skip: int=0, limit:int = 200):
+        return self.id_index.scroll(skip, limit)
+
     def add_docs(self, docs: Union[Dict, List[Dict]],
                  batch_size: int = 100,
                  show_progress:bool = False) -> List[int]:
@@ -253,9 +260,11 @@ class Index(object):
                 if FT.ID not in d:
                     d[FT.ID] = get_uid()
 
-                self.id_index.set(d[FT.ID], d)
                 ids.append(d[FT.ID])
                 batch_ids.append(d[FT.ID])
+
+            # save raw data
+            self.id_index.set(batch_ids, batch)
 
             # insert filter fields
             self.filter_index.add(batch, batch_ids)
@@ -306,10 +315,7 @@ class Index(object):
         :param doc_ids: read docs give doc IDs
         :return:
         """
-        if type(doc_ids) is int:
-            return self.id_index.get(doc_ids)
-        else:
-            return [self.id_index.get(dix) for dix in doc_ids]
+        return self.id_index.get(doc_ids)
 
     def update_docs(self, docs: Union[Dict, List[Dict]],
                     batch_size: int = 100,
@@ -354,6 +360,7 @@ class Index(object):
         """
         q_match = q.get('match', {})
         q_filter = q.get('filter', None)
+        q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
         exclude = q.get('exclude', [])
         include = q.get('include', [])
@@ -386,6 +393,9 @@ class Index(object):
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
+
+        if q_reduce is not None and q_reduce:
+            docs = ReducePipeline().run(q_reduce, docs)
 
         # include has higher priority than exclude
         if len(include) > 0:

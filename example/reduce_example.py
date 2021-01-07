@@ -1,6 +1,6 @@
 import requests
 import os
-
+import numpy as np
 
 host_url = "http://localhost:8000"
 
@@ -36,23 +36,59 @@ def search(index_id, query):
 
 
 if __name__ == "__main__":
+    num_dim = 100
     mapping = {
         'doc_id': {'type': 'keyword'},
-        'v': {'type': 'vector', 'num_dim': 3}
+        'v': {'type': 'vector', 'num_dim': num_dim}
     }
     index = 'v-test'
     docs = []
-    docs.append({'doc_id': '1', 'v': [1.1, 2.2, 3.3]})
-    docs.append({'doc_id': '2', 'v': [4.4, 5.5, 6.6]})
-    docs.append({'doc_id': '3', 'v': [7, 8, 9]})
+    n = 100
+    for i in range(n):
+        docs.append({'doc_id': str(i), 'v': np.random.random(num_dim).tolist()})
 
     delete_index(index)
     make_index(index, mapping)
     add_docs(index, docs)
     import time
     time.sleep(2)
-    print(search(index, {'match': {'v': [1,2,3]}}))
-    print(search(index, {'match': {'v': [3,2,1]}}))
+    query = {
+        'match': {},
+        "exclude": ['v'],
+        'reduce': {
+            'small_v': {
+                'method': "umap",
+                'input': "v",
+                "kwargs": {
+                    "n_components": 2
+                }
+            }
+        }
+    }
+    print(search(index, query))
+
+    query = {
+        'match': {},
+        "exclude": ['v'],
+        'reduce': {
+            'small_v': [
+                {
+                    'method': "pca",
+                    'input': "v",
+                    "kwargs": {
+                        "n_components": 20
+                    }
+                },
+                {
+                    'method': "umap",
+                    "kwargs": {
+                        "n_components": 2
+                    }
+                }
+            ]
+        }
+    }
+    print(search(index, query))
 
 
 

@@ -49,7 +49,12 @@ class EsBM25Index(EsBaseIndex):
         :param tokens: tokenized query
         :return:
         """
-        res = self.es.search(index=self.index_id, body={"query": {"match": {"text": text}}, "size": top_k})
+        query = {
+            "_source": False,
+            "query": {"match": {"text": text}},
+            "size": top_k
+        }
+        res = self.es.search(index=self.index_id, body=query)
         results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
         return results
 
@@ -94,7 +99,11 @@ class EsInvertedIndex(EsBaseIndex):
         main_query = [{'rank_feature': {'field': 'term_scores.{}'.format(t),
                                         "log": {"scaling_factor": 1.0}
                                         }} for t in tokens]
-        es_query = {"query": {"bool": {"should": main_query}}, "size": top_k}
+        es_query = {
+            "_source": False,
+            "query": {"bool": {"should": main_query}},
+            "size": top_k
+        }
         res = self.es.search(index=self.index_id, body=es_query)
         results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
         return results

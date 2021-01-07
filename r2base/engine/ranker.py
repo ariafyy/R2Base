@@ -1,6 +1,6 @@
 from r2base.engine.bases import EngineBase
 import logging
-from typing import Dict, Union, List
+from typing import Dict
 
 
 class Ranker(EngineBase):
