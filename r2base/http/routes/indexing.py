@@ -63,7 +63,7 @@ async def scroll(
         last_key: Optional[int]=None,
 ) -> ScrollRead:
     indexer: Indexer = request.app.state.indexer
-    docs, new_last_key = indexer.scroll_docs(index_id, last_key, limit)
+    docs, new_last_key = indexer.scroll_docs(index_id, limit, last_key)
     resp = ScrollRead(docs=docs, last_key=new_last_key)
     return resp
 
