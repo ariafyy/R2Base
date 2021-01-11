@@ -124,7 +124,11 @@ class KVIndex(IndexBase):
         for values in client.conn.select(GET_VALUES):
             res.append(client.decode(values[1]))
             new_last_key = values[0]
-        return res, int(new_last_key)
+
+        if new_last_key is not None:
+            new_last_key = int(new_last_key)
+        
+        return res, new_last_key
 
 
 if __name__ == "__main__":

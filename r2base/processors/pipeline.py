@@ -24,7 +24,7 @@ class ReducePipeline(object):
         if len(data) < 1:
             self.logger.error("Too few data points ({}) for reduction".format(len(data)))
             return data
-            
+
         for dest_f, pack in query.items():
             if type(pack) is dict:
                 pack = [pack]
