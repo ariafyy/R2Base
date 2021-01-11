@@ -323,7 +323,7 @@ class Index(object):
                     ) -> List[int]:
         doc_ids = []
         for d in docs:
-            if FT.ID not in docs:
+            if FT.ID not in d:
                 raise Exception("Cannot update an document that has missing ID")
             doc_ids.append(d[FT.ID])
         self.delete_docs(doc_ids)

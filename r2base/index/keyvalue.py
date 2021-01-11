@@ -127,7 +127,7 @@ class KVIndex(IndexBase):
 
         if new_last_key is not None:
             new_last_key = int(new_last_key)
-        
+
         return res, new_last_key
 
 
