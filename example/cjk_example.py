@@ -40,4 +40,4 @@ if __name__ == "__main__":
                 buffer = []
 
     print("DONE")
-    print(ranker.query(index, {'match': {'text': "中国"}}))
+    print(ranker.query(index, {'match': {'text': "数学"}}))
