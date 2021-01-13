@@ -46,5 +46,5 @@ class Indexer(EngineBase):
                     show_progress: bool = False):
         return self.get_index(index_id).update_docs(docs, batch_size, show_progress)
 
-    def scroll_docs(self, index_id: str, skip: int, limit: int):
-        return self.get_index(index_id).scroll(skip, limit)
+    def scroll_docs(self, index_id: str, limit: int, last_key: int):
+        return self.get_index(index_id).scroll(limit, last_key)

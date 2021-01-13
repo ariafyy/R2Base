@@ -1,5 +1,7 @@
 import requests
 import os
+import json
+import numpy as np
 
 
 host_url = "http://localhost:5678"
@@ -35,28 +37,37 @@ def search(index_id, query):
     return res.json()
 
 
+def wiki2doc(l):
+    temp = json.loads(l)
+    docs = [{'title': temp[0], 'text': temp[1][0:1000], 'seed': np.random.randint(0, 1000)}]
+    return docs
+
+
 if __name__ == "__main__":
+    path = "data/tiny_wiki.jsonl"
+
     mapping = {
-        'doc_id': {'type': 'keyword'},
-        'v': {'type': 'vector', 'num_dim': 3},
-        'v2': {'type': 'vector', 'num_dim': 3}
-
+        'title': {'type': 'keyword'},
+        'text': {'type': 'text',
+                 'lang': 'en',
+                 'index': 'bm25'
+                 }
     }
-    index = 'v-test'
     docs = []
-    docs.append({'doc_id': '1', 'v': [1, 2, 3], 'v2': [1, 2, 3]})
-    docs.append({'doc_id': '2', 'v': [-1, -2, -3], 'v2': [-1, -2, -3]})
-    docs.append({'doc_id': '3', 'v': [7, 8, 9], 'v2': [7, 8, 9]})
-
+    chunk_size = 10
+    index = 'wiki-es'
     delete_index(index)
     make_index(index, mapping)
-    add_docs(index, docs)
-    import time
-    time.sleep(2)
-    print(search(index, {'match': {'v': [1, 2, 3]}}))
-    print(search(index, {'match': {'v': {'value': [1,2,3], "threshold": 0.8},
-                                   'v2': {'value': [-2,2,-3], "threshold": 0.0}}}))
+    cnt = 0
+    with open(path, 'rb') as f:
+        buffer = []
+        for l in f:
+            cnt += 1
+            buffer.extend(wiki2doc(l))
+            if len(buffer) % chunk_size == 0:
+                add_docs(index, buffer)
+                buffer = []
 
-
-
+    print("DONE")
+    print(search(index, {'match': {'text': "brazil"}}))
 
