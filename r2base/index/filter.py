@@ -14,13 +14,13 @@ class FilterIndex(IndexBase):
     def __init__(self, root_dir: str, index_id: str, mapping: Dict[str, BasicMapping]):
         super().__init__(root_dir, index_id, mapping)
         self.fields = sorted(list(mapping.keys()))
-        self._client = None
+        # self._client = None
 
     @property
     def client(self):
-        if self._client is None:
-            self._client = sqlite3.connect(os.path.join(self.work_dir, 'db.sqlite'))
-        return self._client
+        #if self._client is None:
+        #return self._client
+        return sqlite3.connect(os.path.join(self.work_dir, 'db.sqlite'))
 
     def create_index(self):
         if not os.path.exists(self.work_dir):
@@ -44,18 +44,12 @@ class FilterIndex(IndexBase):
                 raise Exception("Unknown field type {}".format(json.dumps(mapping)))
 
         schema = 'CREATE TABLE IF NOT EXISTS data {}'.format('({})'.format(','.join(schema)))
-        c = self.client.cursor()
+        client = self.client
+        c = client.cursor()
         c.execute(schema)
-        self.client.commit()
+        client.commit()
 
     def delete_index(self) -> None:
-        try:
-            if self._client is not None:
-                self.client.close()
-                self._client = None
-        except Exception as e:
-            self.logger.error(e)
-
         try:
             os.remove(os.path.join(self.work_dir, 'db.sqlite'))
             os.removedirs(self.work_dir)
@@ -63,7 +57,8 @@ class FilterIndex(IndexBase):
             self.logger.error(e)
 
     def add(self, data: Union[List[Dict], Dict], doc_ids: Union[List[int], int]) -> None:
-        c = self.client.cursor()
+        client = self.client
+        c = client.cursor()
         sql = 'INSERT INTO data VALUES ({})'.format(','.join(['?'] * (len(self.fields) + 1)))
 
         if type(data) is dict:
@@ -74,15 +69,16 @@ class FilterIndex(IndexBase):
                 row = [doc_id] + [d.get(f, None) for f in self.fields]
                 c.execute(sql, row)
 
-        self.client.commit()
+        client.commit()
 
     def delete(self, doc_ids: Union[List[int], int]):
         if type(doc_ids) is int:
             doc_ids = [doc_ids]
+        client = self.client
         query = 'DELETE FROM data where _id IN ({})'.format(','.join('?' * len(doc_ids)))
-        c = self.client.cursor()
+        c = client.cursor()
         c.execute(query, doc_ids)
-        self.client.commit()
+        client.commit()
 
     def size(self) -> int:
         c = self.client.cursor()
@@ -119,25 +115,14 @@ class FilterIndex(IndexBase):
 
 if __name__ == "__main__":
     mapping = {
-        "date": {
-            "type": "datetime"
-        },
-        "issuer": {
-            "type": "keyword"
-        },
-        "oid": {
-            "type": "keyword"
-        },
-        "url": {
-            "type": "keyword"
-        },
-        "source": {
-            "type": "keyword"
-        }
+        "date": BasicMapping(type='datetime'),
+        "issuer": BasicMapping(type='keyword'),
+        "oid": BasicMapping(type='keyword'),
+        "url": BasicMapping(type='keyword'),
+        "source": BasicMapping(type='keyword')
     }
     c = FilterIndex('/Users/tonyzhao/Documents/projects/R2Base/_index/123',
-                    index_id='123-filter',
-                    mapping=mapping)
+                    index_id='123-filter', mapping=mapping)
     query = "date=datetime(\"2020-10-26 12:23:00\")"
     ids = ['6976962558034708725', '6976576715352705269', '6977457853663283445', '6977264133458364661', '6976927296353208565', '6976997175471114485', '6977031062763079925', '6977064434658969845', '6977162192409594101', '6976723822277560565', '6977296942713538805', '6976689075992135925', '6977556878429260021', '6976381942880798965', '6977098429325117685', '6977196139831101685', '6976419180247255285', '6977230542519142645', '6977130083234089205', '6976460497832642805', '6977332178625235189', '6976825466973587701', '6976539289007687925', '6977427058747771125', '6976790892486854901', '6976498572717721845', '6977397616746957045', '6976613978488965365', '6977494683007846645', '6976858688545622261', '6976338370437581045', '6976892610197326069', '6976652117798553845', '6977525864470415605', '6977364631398123765']
     print(c.select(query, valid_ids=ids))

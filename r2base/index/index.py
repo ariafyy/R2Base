@@ -6,12 +6,13 @@ from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
 from r2base.mappings import parse_mapping, BasicMapping, TextMapping
-from r2base.processors.pipeline import Pipeline
+from r2base.processors.pipeline import Pipeline, ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
 from joblib import Parallel, delayed
-from typing import Dict, Set
+from typing import Dict, Set, Any
 from tqdm import tqdm
+from collections import defaultdict
 import json
 import numpy as np
 import logging
@@ -126,11 +127,15 @@ class Index(object):
             else:
                 filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
                 filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-                docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in filtered_ranks]
+                sources = self.id_index.get([_id for _id, s in filtered_ranks])
+                scores = [s for _id, s in filtered_ranks]
         else:
             ranks = [(k, v) for k, v in ranks.items()]
             ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-            docs = [{'_source': self.id_index.get(_id), 'score': s} for _id, s in ranks]
+            sources = self.id_index.get([_id for _id, s in ranks])
+            scores = [s for _id, s in ranks]
+
+        docs = [{'_source': src, 'score': score} for src, score in zip(sources, scores)]
 
         return docs
 
@@ -162,6 +167,33 @@ class Index(object):
                 self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
 
         return self._clients.get(field)
+
+    def _fuse_field_ranking(self, results: List):
+        ranks = dict()
+        must_only_ids = dict()
+        for idx, (field_scores, threshold) in enumerate(results):
+            if threshold is not None:
+                must_only_ids[idx] = set()
+
+            for score, _id in field_scores:
+                if threshold is not None:
+                    must_only_ids[idx].add(_id)
+
+                ranks[_id] = score + ranks.get(_id, 0.0)
+
+        if len(must_only_ids) > 0:
+            temp = None
+            for k, v in must_only_ids.items():
+                if temp is None:
+                    temp = v
+                else:
+                    if len(temp) == 0:
+                        break
+                    temp = temp.intersection(v)
+
+            ranks = {k: v for k, v in ranks.items() if k in temp}
+
+        return ranks
 
     @property
     def filter_index(self) -> FilterIndex:
@@ -229,6 +261,9 @@ class Index(object):
     def size(self) -> int:
         return self.id_index.size()
 
+    def scroll(self, limit:int=200, last_key:int=None):
+        return self.id_index.scroll(limit, last_key)
+
     def add_docs(self, docs: Union[Dict, List[Dict]],
                  batch_size: int = 100,
                  show_progress:bool = False) -> List[int]:
@@ -253,9 +288,11 @@ class Index(object):
                 if FT.ID not in d:
                     d[FT.ID] = get_uid()
 
-                self.id_index.set(d[FT.ID], d)
                 ids.append(d[FT.ID])
                 batch_ids.append(d[FT.ID])
+
+            # save raw data
+            self.id_index.set(batch_ids, batch)
 
             # insert filter fields
             self.filter_index.add(batch, batch_ids)
@@ -306,10 +343,7 @@ class Index(object):
         :param doc_ids: read docs give doc IDs
         :return:
         """
-        if type(doc_ids) is int:
-            return self.id_index.get(doc_ids)
-        else:
-            return [self.id_index.get(dix) for dix in doc_ids]
+        return self.id_index.get(doc_ids)
 
     def update_docs(self, docs: Union[Dict, List[Dict]],
                     batch_size: int = 100,
@@ -317,17 +351,23 @@ class Index(object):
                     ) -> List[int]:
         doc_ids = []
         for d in docs:
-            if FT.ID not in docs:
+            if FT.ID not in d:
                 raise Exception("Cannot update an document that has missing ID")
             doc_ids.append(d[FT.ID])
         self.delete_docs(doc_ids)
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
-    def _query_field(self, mapping, field: str, value, rank_k: int):
+    def _query_field(self, mapping, field: str, value: Any, rank_k: int):
         if field == FT.ID or self._is_filter(mapping.type):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
-            return []
+            return [], None
+
+        if type(value) is dict:
+            threshold = value['threshold']
+            value = value['value']
+        else:
+            threshold = None
 
         if mapping.type == FT.TEXT:
             mapping: TextMapping = mapping
@@ -335,8 +375,11 @@ class Index(object):
             kwargs = {'lang': mapping.lang, 'is_query': True}
             value = pipe.run(value, **kwargs)
 
-        temp = self._get_sub_index(field, mapping).rank(value, rank_k)
-        return temp
+        field_scores = self._get_sub_index(field, mapping).rank(value, rank_k)
+        if threshold is not None:
+            field_scores = [(score, _id) for score, _id in field_scores if score >= threshold]
+
+        return field_scores, threshold
 
     def query(self, q: Dict) -> List[Dict]:
         """
@@ -344,8 +387,9 @@ class Index(object):
         :param q: query body
         {
             match: {
-                text: xxx,
-                vec: {'vector': x, 'text': xxx}
+                vec2: [1,2,3]
+                vec2: {'value': [1,2,3], 'threshold': 0.8}
+                vec: {'value': [1,2,3], 'threshold': 0.9}
             },
             filter: "f1=XX AND size > 8"
             "size": 10
@@ -354,6 +398,7 @@ class Index(object):
         """
         q_match = q.get('match', {})
         q_filter = q.get('filter', None)
+        q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
         exclude = q.get('exclude', [])
         include = q.get('include', [])
@@ -373,9 +418,7 @@ class Index(object):
                                                                                           field, value, rank_k)
                                              for field, value in q_match.items())
 
-            for temp in results:
-                for score, _id in temp:
-                    ranks[_id] = score + ranks.get(_id, 0.0)
+            ranks = self._fuse_field_ranking(results)
         else:
             # get random IDs
             keys = self.id_index.sample(rank_k, return_value=False)
@@ -386,6 +429,9 @@ class Index(object):
             filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
+
+        if q_reduce is not None and q_reduce:
+            docs = ReducePipeline().run(q_reduce, docs)
 
         # include has higher priority than exclude
         if len(include) > 0:

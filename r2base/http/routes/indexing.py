@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
 from starlette.requests import Request
 from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
-from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList
+from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList, ScrollRead
 from r2base.engine.indexer import Indexer
+from typing import Union, Optional
 import time
 
 router = APIRouter()
@@ -52,6 +53,18 @@ async def post_predict(
 ) -> MappingRead:
     indexer: Indexer = request.app.state.indexer
     return MappingRead(index=index_id, mappings=indexer.get_mapping(index_id))
+
+
+@router.get("/{index_id}/scroll", response_model=ScrollRead, name="Scroll documents")
+async def scroll(
+        request: Request,
+        index_id: str,
+        limit: int,
+        last_key: Optional[int]=None,
+) -> ScrollRead:
+    indexer: Indexer = request.app.state.indexer
+    docs, new_last_key = indexer.scroll_docs(index_id, limit, last_key)
+    return ScrollRead(docs=docs, last_key=new_last_key)
 
 
 @router.post("/{index_id}/docs", response_model=DocWrite, name="Add documents", status_code=status.HTTP_201_CREATED)
@@ -112,3 +125,5 @@ async def post_predict(
     docs = indexer.read_docs(index_id, doc_ids)
     resp = DocRead(docs=docs)
     return resp
+
+
