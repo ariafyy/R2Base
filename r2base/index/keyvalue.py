@@ -99,8 +99,16 @@ class KVIndex(IndexBase):
                         random_ids.add(r)
             else:
                 raise Exception("Unknown sample mode {}".format(sample_mode))
-        db_keys = list(db_keys)
-        res = [db_keys[idx] for idx in random_ids]
+
+        # if db is too big, don't blow up the memory
+        if db_size < 100000:
+            db_keys = list(db_keys)
+            res = [db_keys[idx] for idx in random_ids]
+        else:
+            res = []
+            for key_id, key in enumerate(db_keys):
+                if key_id in random_ids:
+                    res.append(int(key))
 
         if return_value:
             res = self.get(res)
@@ -149,7 +157,7 @@ if __name__ == "__main__":
     c = KVIndex('.', idx, BasicMapping(type='_id'))
     c.delete_index()
     c.create_index()
-    keys = list(range(100))
+    keys = list(range(100000))
     vals = [str(x) for x in keys]
     c.set(keys, vals)
     for i in range(100):
