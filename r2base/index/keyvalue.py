@@ -87,7 +87,7 @@ class KVIndex(IndexBase):
             # evenly sample in the whole database
             if sample_mode == 'fixed':
                 step = db_size//size
-                random_ids = np.arange(0, db_size, step).tolist()[0:size]
+                random_ids = set(np.arange(0, db_size, step).tolist()[0:size])
 
             elif sample_mode == 'random':
                 random_ids = set(np.random.randint(0, len(client), size))
@@ -99,10 +99,8 @@ class KVIndex(IndexBase):
                         random_ids.add(r)
             else:
                 raise Exception("Unknown sample mode {}".format(sample_mode))
-        res = []
-        for key_id, key in enumerate(db_keys):
-            if key_id in random_ids:
-                res.append(int(key))
+        db_keys = list(db_keys)
+        res = [db_keys[idx] for idx in random_ids]
 
         if return_value:
             res = self.get(res)

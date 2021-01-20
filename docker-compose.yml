@@ -1,7 +1,7 @@
 version: '2.3'
 services:
   r2base:
-    image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base:0.1-reducer
+    image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base:0.3-dev
     container_name: r2base
     ports:
       - 8000:8000
