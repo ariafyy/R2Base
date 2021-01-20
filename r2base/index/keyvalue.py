@@ -103,7 +103,7 @@ class KVIndex(IndexBase):
         # if db is too big, don't blow up the memory
         if db_size < 100000:
             db_keys = list(db_keys)
-            res = [db_keys[idx] for idx in random_ids]
+            res = [int(db_keys[idx]) for idx in random_ids]
         else:
             res = []
             for key_id, key in enumerate(db_keys):
