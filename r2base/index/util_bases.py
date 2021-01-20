@@ -39,7 +39,7 @@ class EsBaseIndex(IndexBase):
             self.logger.error(e)
 
     def delete(self, doc_ids: Union[List[int], int]) -> None:
-        if type(doc_ids) is int:
+        if type(doc_ids) is not list:
             doc_ids = [doc_ids]
 
         for doc_id in doc_ids:
