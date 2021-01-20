@@ -69,23 +69,38 @@ class KVIndex(IndexBase):
         else:
             return [client.get(int(k), dict()) for k in key]
 
-    def sample(self, size: int, return_value: bool = True) -> List:
-        if self.size() == 0:
+    def sample(self, size: int, return_value: bool = True, sample_mode='fixed') -> List:
+        if size == 0:
             return []
+
         client = self.client
         db_size = len(client)
+
+        if db_size == 0:
+            return []
+
+        db_keys = client.keys()
+
         if size >= db_size:
             random_ids = list(range(db_size))
         else:
-            random_ids = set(np.random.randint(0, len(client), size))
-            attempts = 0  # in case dead loop in a case that is impossible
-            while len(random_ids) < size and attempts < 1000:
-                r = np.random.randint(0, db_size)
-                attempts += 1
-                if r not in random_ids:
-                    random_ids.add(r)
+            # evenly sample in the whole database
+            if sample_mode == 'fixed':
+                step = db_size//size
+                random_ids = np.arange(0, db_size, step).tolist()[0:size]
+
+            elif sample_mode == 'random':
+                random_ids = set(np.random.randint(0, len(client), size))
+                attempts = 0  # in case dead loop in a case that is impossible
+                while len(random_ids) < size and attempts < 1000:
+                    r = np.random.randint(0, db_size)
+                    attempts += 1
+                    if r not in random_ids:
+                        random_ids.add(r)
+            else:
+                raise Exception("Unknown sample mode {}".format(sample_mode))
         res = []
-        for key_id, key in enumerate(client.keys()):
+        for key_id, key in enumerate(db_keys):
             if key_id in random_ids:
                 res.append(int(key))
 
@@ -136,12 +151,14 @@ if __name__ == "__main__":
     c = KVIndex('.', idx, BasicMapping(type='_id'))
     c.delete_index()
     c.create_index()
-    keys = list(range(10000))
+    keys = list(range(100))
     vals = [str(x) for x in keys]
     c.set(keys, vals)
+    for i in range(100):
+        assert len(c.sample(i)) == i
+    exit(1)
 
     import time
-
     print("Start paging")
     s_time = time.time()
     limit = 200

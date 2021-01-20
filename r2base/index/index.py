@@ -397,6 +397,7 @@ class Index(object):
         :return:
         """
         q_match = q.get('match', {})
+        match_args = q.get('match_args', {})
         q_filter = q.get('filter', None)
         q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
@@ -406,7 +407,6 @@ class Index(object):
         if top_k <= 0:
             return []
 
-        ranks = dict()
         filters = set()
         do_filter = q_filter is not None
 
@@ -421,7 +421,7 @@ class Index(object):
             ranks = self._fuse_field_ranking(results)
         else:
             # get random IDs
-            keys = self.id_index.sample(rank_k, return_value=False)
+            keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
             scores = np.random.random(len(keys))
             ranks = {k: s for k, s in zip(keys, scores)}
 
