@@ -157,7 +157,7 @@ if __name__ == "__main__":
     c = KVIndex('.', idx, BasicMapping(type='_id'))
     c.delete_index()
     c.create_index()
-    keys = list(range(100000))
+    keys = list(range(10000))
     vals = [str(x) for x in keys]
     c.set(keys, vals)
     for i in range(100):
