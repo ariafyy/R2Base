@@ -2,7 +2,7 @@ FROM docker.io/rapidsai/rapidsai:cuda10.1-base-ubuntu18.04
 WORKDIR /app
 
 COPY ./requirements.txt /app
-RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+RUN /opt/conda/envs/rapids/bin/pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 COPY . .
 

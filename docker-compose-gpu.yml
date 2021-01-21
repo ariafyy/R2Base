@@ -2,11 +2,14 @@ version: '2.3'
 services:
   r2base:
     image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base:gpu-0.3-dev
+    runtime: nvidia
     container_name: r2base
     ports:
       - 8000:8000
     environment:
       - ES_URL=es01:9200
+      - UMAP_BACKEND=gpu
+      - NVIDIA_VISIBLE_DEVICES=2
     networks:
       - r2base
     volumes:

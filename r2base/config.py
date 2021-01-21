@@ -16,6 +16,8 @@ class EnvVar(object):
     IS_DEBUG = bool(os.environ.get('IS_DEBUG', default['IS_DEBUG']))
     IV_BACKEND = os.environ.get('IV_BACKEND', default['IV_BACKEND'])
     ANN_BACKEND = os.environ.get('ANN_BACKEND', default['ANN_BACKEND'])
+    UMAP_BACKEND = os.environ.get('UMAP_BACKEND', default['UMAP_BACKEND'])
+
     ES_URL = os.environ.get('ES_URL', default['ES_URL'])
     ES_SHARD_NUM = int(os.environ.get('ES_SHARD_NUM', default['ES_SHARD_NUM']))
     ES_REPLICA_NUM = int(os.environ.get('ES_REPLICA_NUM', default['ES_REPLICA_NUM']))
