@@ -33,7 +33,7 @@ class UMAPReducer(ProcessorBase):
                                min_dist=umap_min_dist,
                                metric=umap_metric,
                                random_state=random_seed
-                               ).fit(embeddings)
-        umap_embeddings = umap_model.transform(embeddings)
+                               )
+        umap_embeddings = umap_model.fit_transform(embeddings)
         self.logger.info("Reduced dimensionality with UMAP")
         return umap_embeddings
