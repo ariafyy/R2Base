@@ -12,7 +12,8 @@ class UMAPReducer(ProcessorBase):
             umap_min_dist: float = 0.01,
             n_components: int = 3,
             umap_metric: str = 'cosine',
-            random_seed: int = 42) -> np.ndarray:
+            random_seed: int = 42,
+            l2_norm: bool = False) -> np.ndarray:
         """ Reduce dimensionality of embeddings using UMAP and train a UMAP model
 
         Parameters
