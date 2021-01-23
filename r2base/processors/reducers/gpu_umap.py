@@ -1,7 +1,8 @@
 import logging
 from r2base.processors.bases import ProcessorBase
 import numpy as np
-import cuml
+from cuml.neighbors import NearestNeighbors
+from cuml.manifold import UMAP
 
 
 class GpuUMAPReducer(ProcessorBase):
@@ -29,15 +30,16 @@ class GpuUMAPReducer(ProcessorBase):
         if embeddings.shape[1] <= n_components:
             return embeddings
 
-        if l2_norm:
-            embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+        m = NearestNeighbors(n_neighbors=n_neighbors, metric=umap_metric)
+        m.fit(embeddings)
+        knn_graph = m.kneighbors(embeddings)
 
-        umap_model = cuml.UMAP(n_neighbors=n_neighbors,
-                               n_components=n_components,
-                               min_dist=umap_min_dist,
-                               # metric=umap_metric,
-                               random_state=random_seed
-                               )
-        umap_embeddings = umap_model.fit_transform(embeddings)
+        umap_model = UMAP(n_neighbors=n_neighbors,
+                          n_components=n_components,
+                          min_dist=umap_min_dist,
+                          # metric=umap_metric,
+                          random_state=random_seed
+                          )
+        umap_embeddings = umap_model.fit_transform(embeddings, knn_graph=knn_graph)
         self.logger.info("Reduced dimensionality with UMAP")
         return umap_embeddings
