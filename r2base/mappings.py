@@ -25,7 +25,7 @@ def parse_mapping(mapping: dict):
         return VectorMapping.parse_obj(mapping)
 
     if basic_map.type == FT.TERM_SCORE:
-        return basic_map
+        return TermScoreMapping.parse_obj(mapping)
 
     if basic_map.type == FT.TEXT:
         return TextMapping.parse_obj(mapping)
@@ -37,6 +37,10 @@ class BasicMapping(BaseModel):
 
 class VectorMapping(BasicMapping):
     num_dim: int
+
+
+class TermScoreMapping(BasicMapping):
+    mode: str = 'float'
 
 
 class TextMapping(BasicMapping):

@@ -120,7 +120,10 @@ class EsQuantInvertedIndex(EsBaseIndex):
 
         config = {
             'mappings': {
-                'properties': {"term_scores": {"type": "text", "analyzer": "cutter_analyzer", 'similarity': "tf_alone"}}
+                'properties': {"term_scores": {"type": "text",
+                                               "index_options": "freqs",
+                                               "analyzer": "cutter_analyzer",
+                                               'similarity': "tf_alone"}}
             },
             'settings': setting
         }

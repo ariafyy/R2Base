@@ -5,7 +5,7 @@ from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
-from r2base.mappings import parse_mapping, BasicMapping, TextMapping
+from r2base.mappings import parse_mapping, BasicMapping, TextMapping, TermScoreMapping
 from r2base.processors.pipeline import Pipeline, ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
@@ -24,9 +24,10 @@ if EnvVar.IV_BACKEND == 'ty':
     from r2base.index.iv.ty_inverted import TyBM25Index
     BM25Index = TyBM25Index
 elif EnvVar.IV_BACKEND == 'es':
-    from r2base.index.iv.es_inverted import EsBM25Index, EsInvertedIndex
+    from r2base.index.iv.es_inverted import EsBM25Index, EsQuantInvertedIndex, EsInvertedIndex
     BM25Index = EsBM25Index
     IvIndex = EsInvertedIndex
+    QuantIvIndex = EsQuantInvertedIndex
 else:
     raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
 
@@ -163,8 +164,15 @@ class Index(object):
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
             elif mapping.type == FT.TERM_SCORE:
+                mapping : TermScoreMapping  = mapping
                 sub_id = self._sub_index_id(field)
-                self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                if mapping.mode == 'float':
+                    self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                elif mapping.mode == 'int':
+                    self._clients[field] = QuantIvIndex(self.index_dir, sub_id, mapping)
+                else:
+                    raise Exception("Unknown term score mode={}".format(mapping.mode))
+
 
         return self._clients.get(field)
 
