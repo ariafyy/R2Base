@@ -43,3 +43,10 @@ class GpuUMAPReducer(ProcessorBase):
         umap_embeddings = umap_model.fit_transform(embeddings, knn_graph=knn_graph)
         self.logger.info("Reduced dimensionality with UMAP")
         return umap_embeddings
+
+
+if __name__ == "__main__":
+    import  numpy as np
+    data = np.random.random(500*200).reshape(500, 200)
+    m = GpuUMAPReducer().run(data)
+    print(m.shape)
