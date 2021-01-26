@@ -1,6 +1,6 @@
 from r2base.processors.bases import ProcessorBase
 from typing import List, Union
-import jieba
+import jieba_fast as jieba
 
 
 class NoOp(ProcessorBase):
