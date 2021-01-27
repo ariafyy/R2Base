@@ -370,7 +370,7 @@ class Index(object):
         if field == FT.ID or self._is_filter(mapping.type):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return [], None
-        print(value)
+
         if type(value) is dict:
                 threshold = value.get('threshold', 0.0)
                 value = value['value']
