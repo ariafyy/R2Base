@@ -372,16 +372,17 @@ class Index(object):
             return [], None
 
         if type(value) is dict:
-            threshold = value['threshold']
-            value = value['value']
+                threshold = value.get('threshold', 0.0)
+                value = value['value']
         else:
             threshold = None
 
         if mapping.type == FT.TEXT:
-            mapping: TextMapping = mapping
-            pipe = Pipeline(mapping.q_processor)
-            kwargs = {'lang': mapping.lang, 'is_query': True}
-            value = pipe.run(value, **kwargs)
+            if type(value) is str:
+                mapping: TextMapping = mapping
+                pipe = Pipeline(mapping.q_processor)
+                kwargs = {'lang': mapping.lang, 'is_query': True}
+                value = pipe.run(value, **kwargs)
 
         field_scores = self._get_sub_index(field, mapping).rank(value, rank_k)
         if threshold is not None:

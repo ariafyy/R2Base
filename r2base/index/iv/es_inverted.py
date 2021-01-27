@@ -49,11 +49,19 @@ class EsBM25Index(EsBaseIndex):
         :param tokens: tokenized query
         :return:
         """
-        query = {
-            "_source": False,
-            "query": {"match": {"text": text}},
-            "size": top_k
-        }
+        if type(text) is dict:
+            query = {
+                "_source": False,
+                "query": text,
+                "size": top_k
+            }
+        else:
+            query = {
+                "_source": False,
+                "query": {"match": {"text": text}},
+                "size": top_k
+            }
+
         res = self.es.search(index=self.index_id, body=query)
         results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
         return results
