@@ -370,19 +370,15 @@ class Index(object):
         if field == FT.ID or self._is_filter(mapping.type):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return [], None
+        print(value)
         if type(value) is dict:
-            if 'threshold' not in value:
-                threshold = None
-            else:
-                threshold = value['threshold']
+                threshold = value.get('threshold', 0.0)
                 value = value['value']
         else:
             threshold = None
 
         if mapping.type == FT.TEXT:
-            if type(value) is dict and 'threshold' not in value:
-                pass
-            else:
+            if type(value) is str:
                 mapping: TextMapping = mapping
                 pipe = Pipeline(mapping.q_processor)
                 kwargs = {'lang': mapping.lang, 'is_query': True}
