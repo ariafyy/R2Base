@@ -52,7 +52,7 @@ class EsBM25Index(EsBaseIndex):
         if type(text) is dict:
             query = {
                 "_source": False,
-                "query": {"bool": text},
+                "query": text,
                 "size": top_k
             }
         else:
