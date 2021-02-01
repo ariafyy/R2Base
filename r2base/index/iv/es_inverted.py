@@ -49,11 +49,19 @@ class EsBM25Index(EsBaseIndex):
         :param tokens: tokenized query
         :return:
         """
-        query = {
-            "_source": False,
-            "query": {"match": {"text": text}},
-            "size": top_k
-        }
+        if type(text) is dict:
+            query = {
+                "_source": False,
+                "query": text,
+                "size": top_k
+            }
+        else:
+            query = {
+                "_source": False,
+                "query": {"match": {"text": text}},
+                "size": top_k
+            }
+
         res = self.es.search(index=self.index_id, body=query)
         results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
         return results
@@ -109,11 +117,77 @@ class EsInvertedIndex(EsBaseIndex):
         return results
 
 
+class EsQuantInvertedIndex(EsBaseIndex):
+    type = IT.INVERTED
+    ALPHA = 10.0
+    MAX_NUM_COPY = 100
+
+    def create_index(self) -> None:
+        params = {"timeout": '100s'}
+        setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
+
+        config = {
+            'mappings': {
+                'properties': {"term_scores": {"type": "text",
+                                               "index_options": "freqs",
+                                               "analyzer": "cutter_analyzer",
+                                               'similarity': "tf_alone"}}
+            },
+            'settings': setting
+        }
+        self._make_index(self.index_id, config, params)
+
+    def add(self, data: Union[List[Dict[str, float]], Dict[str, float]], doc_ids: Union[List[int], int]) -> None:
+        if type(doc_ids) is int:
+            data = [data]
+            doc_ids = [doc_ids]
+
+        index_data = []
+        for ts, doc_id in zip(data, doc_ids):
+            tokens = []
+            for term, s in ts.items():
+                tokens.extend([term] * min(self.MAX_NUM_COPY, int(s * self.ALPHA)))
+
+            index_data.append({
+                '_id': doc_id,
+                'term_scores': '/'.join(tokens),
+                '_op_type': 'index',
+                '_index': self.index_id
+            })
+
+        self.run_bulk(index_data, 5000)
+
+    def rank(self, tokens: List[str], top_k: int) -> List[Tuple[float, int]]:
+        """
+        :param tokens: tokenized query
+        :return:
+        """
+        es_query = {
+            "_source": False,
+            "query": {"match": {"term_scores": '/'.join(tokens)}},
+            "size": top_k
+        }
+        res = self.es.search(index=self.index_id, body=es_query)
+        results = [(float(h['_score'])/self.ALPHA, int(h['_id'])) for h in res['hits']['hits']]
+        return results
+
+
 if __name__ == "__main__":
     import time
-
     root = '.'
     idx = 'test-3'
+    i = EsQuantInvertedIndex(root, idx, {})
+    i.delete_index()
+    i.create_index()
+    i.add({'a': 1.1, 'b': 2.2}, 1)
+    i.add({'a': 1.1, 'c': 3.2}, 2)
+    i.add({'c': 0.1, 'b': 2.2}, 3)
+
+    time.sleep(2)
+    x = i.rank(['a', 'c'], 2)
+    print(x)
+
+    exit(1)
     i = EsBM25Index(root, idx, {})
     i.delete_index()
     i.create_index()

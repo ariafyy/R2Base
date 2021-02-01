@@ -5,7 +5,7 @@ from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
-from r2base.mappings import parse_mapping, BasicMapping, TextMapping
+from r2base.mappings import parse_mapping, BasicMapping, TextMapping, TermScoreMapping
 from r2base.processors.pipeline import Pipeline, ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
@@ -24,9 +24,10 @@ if EnvVar.IV_BACKEND == 'ty':
     from r2base.index.iv.ty_inverted import TyBM25Index
     BM25Index = TyBM25Index
 elif EnvVar.IV_BACKEND == 'es':
-    from r2base.index.iv.es_inverted import EsBM25Index, EsInvertedIndex
+    from r2base.index.iv.es_inverted import EsBM25Index, EsQuantInvertedIndex, EsInvertedIndex
     BM25Index = EsBM25Index
     IvIndex = EsInvertedIndex
+    QuantIvIndex = EsQuantInvertedIndex
 else:
     raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
 
@@ -163,8 +164,15 @@ class Index(object):
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
             elif mapping.type == FT.TERM_SCORE:
+                mapping : TermScoreMapping  = mapping
                 sub_id = self._sub_index_id(field)
-                self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                if mapping.mode == 'float':
+                    self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                elif mapping.mode == 'int':
+                    self._clients[field] = QuantIvIndex(self.index_dir, sub_id, mapping)
+                else:
+                    raise Exception("Unknown term score mode={}".format(mapping.mode))
+
 
         return self._clients.get(field)
 
@@ -364,16 +372,17 @@ class Index(object):
             return [], None
 
         if type(value) is dict:
-            threshold = value['threshold']
-            value = value['value']
+                threshold = value.get('threshold', 0.0)
+                value = value['value']
         else:
             threshold = None
 
         if mapping.type == FT.TEXT:
-            mapping: TextMapping = mapping
-            pipe = Pipeline(mapping.q_processor)
-            kwargs = {'lang': mapping.lang, 'is_query': True}
-            value = pipe.run(value, **kwargs)
+            if type(value) is str:
+                mapping: TextMapping = mapping
+                pipe = Pipeline(mapping.q_processor)
+                kwargs = {'lang': mapping.lang, 'is_query': True}
+                value = pipe.run(value, **kwargs)
 
         field_scores = self._get_sub_index(field, mapping).rank(value, rank_k)
         if threshold is not None:
@@ -397,6 +406,7 @@ class Index(object):
         :return:
         """
         q_match = q.get('match', {})
+        match_args = q.get('match_args', {})
         q_filter = q.get('filter', None)
         q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
@@ -406,7 +416,6 @@ class Index(object):
         if top_k <= 0:
             return []
 
-        ranks = dict()
         filters = set()
         do_filter = q_filter is not None
 
@@ -421,7 +430,7 @@ class Index(object):
             ranks = self._fuse_field_ranking(results)
         else:
             # get random IDs
-            keys = self.id_index.sample(rank_k, return_value=False)
+            keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
             scores = np.random.random(len(keys))
             ranks = {k: s for k, s in zip(keys, scores)}
 

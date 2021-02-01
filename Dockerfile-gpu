@@ -1,0 +1,14 @@
+FROM docker.io/rapidsai/rapidsai:cuda10.1-base-ubuntu18.04
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y gcc
+
+COPY ./requirements.txt /app
+RUN /opt/conda/envs/rapids/bin/pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+
+COPY . .
+
+# make model directory and download model files
+ENV LANG C.UTF-8
+
+CMD ["uvicorn", "r2base.http.server:app", "--host", "0.0.0.0", "--port", "8000",  "--workers", "4"]
