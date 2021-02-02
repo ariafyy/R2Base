@@ -47,16 +47,25 @@ class KVIndex(IndexBase):
     def size(self) -> int:
         return len(self.client)
 
+    def _set(self, client, key: int, value):
+        # we do not override the same key twice.
+        key = int(key)
+        if key in client:
+            raise Exception("_id {} already exists. Try update or delete".format(key))
+
+        client[key] = value
+        return True
+
     def set(self, key: Union[List[int], int], value) -> None:
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None
         client = self.client
         if type(key) is not list:
-            client[int(key)] = value
+            self._set(client, key, value)
         else:
             for k, v in zip(key, value):
-                client[int(k)] = v
+                self._set(client, k, value)
         client.commit()
 
     def get(self, key: Union[List[int], int]) -> Union[List[Dict], Dict]:
