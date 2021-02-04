@@ -77,7 +77,7 @@ class EsBM25Index(EsBaseIndex):
 
         res = self.es.search(index=self.index_id, body=query)
         # print(res)
-        results = [(float(h['_score']), int(h['_id'])) if h['_score'] else ((0.0), int(h['_id'])) for h in res['hits']['hits'] ]
+        results = [(float(h.get('_score', 0.0)), int(h['_id'])) for h in res['hits']['hits']]
         return results
 
 

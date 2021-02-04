@@ -21,7 +21,7 @@ async def post_predict(
     return resp
 
 
-@router.post("/{index_id}/scroll", response_model=ScrollSearch, name="predict")
+@router.post("/{index_id}/scroll_query", response_model=ScrollSearch, name="predict")
 async def post_scroll(
         request: Request,
         index_id: str,
