@@ -366,17 +366,15 @@ class Index(object):
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
-    def _query_field(self, mapping, field: str, value: Any, rank_k: int):
+    def _query_field(self, mapping, field: str, value: Any, rank_k: int, q_sort: None):
         if field == FT.ID or self._is_filter(mapping.type):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return [], None
-
         if type(value) is dict:
                 threshold = value.get('threshold', 0.0)
                 value = value['value']
         else:
             threshold = None
-
         if mapping.type == FT.TEXT:
             if type(value) is str:
                 mapping: TextMapping = mapping
@@ -384,6 +382,8 @@ class Index(object):
                 kwargs = {'lang': mapping.lang, 'is_query': True}
                 value = pipe.run(value, **kwargs)
 
+        if q_sort:
+            value = {'value': value, 'scroll_query': q_sort}
         field_scores = self._get_sub_index(field, mapping).rank(value, rank_k)
         if threshold is not None:
             field_scores = [(score, _id) for score, _id in field_scores if score >= threshold]
@@ -424,9 +424,8 @@ class Index(object):
         if len(q_match) > 0:
             n_job = max(1, min(5, len(q_match)))
             results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
-                                                                                          field, value, rank_k)
+                                                                                          field, value, rank_k, None)
                                              for field, value in q_match.items())
-
             ranks = self._fuse_field_ranking(results)
         else:
             # get random IDs
@@ -456,6 +455,47 @@ class Index(object):
                 for d in docs:
                     for field in exclude:
                         d['_source'].pop(field, None)
-
         return docs
 
+
+    def scroll_query(self, q: Dict):
+        q_match = q.get('match', {})
+        match_args = q.get('match_args', {})
+        q_filter = q.get('filter', None)
+        top_k = q.get('size', 10)
+        exclude = q.get('exclude', [])
+        include = q.get('include', [])
+        sort_index = q.get('sort', {})
+        search_after = q.get('search_after', None)
+
+        if top_k <= 0:
+            return [], None
+
+        filters = set()
+        do_filter = q_filter is not None
+        rank_k = top_k
+        q_sort = {'sort': sort_index}
+
+        if search_after:
+            q_sort['search_after'] = search_after
+
+        if len(q_match) > 0:
+            n_job = max(1, min(5, len(q_match)))
+            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
+                                                                                          field, value, rank_k, q_sort)
+                                                               for field, value in q_match.items())
+
+            ranks = self._fuse_field_ranking(results)
+        else:
+            pass
+
+        if do_filter:
+            filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
+        # print(results)
+        if results[0][0]:
+            last_id = results[0][0][-1][-1]
+        else:
+            last_id = None
+        docs = self._fuse_results(do_filter, ranks, filters, top_k)
+
+        return docs, last_id

@@ -50,20 +50,34 @@ class EsBM25Index(EsBaseIndex):
         :return:
         """
         if type(text) is dict:
-            query = {
-                "_source": False,
-                "query": text,
-                "size": top_k
-            }
+            scroll_q = text.get('scroll_query', None)
+            if scroll_q:
+                query = {
+                    "_source": False,
+                    "query": text['value'],
+                    "size": top_k,
+                    "sort": scroll_q['sort'],
+                }
+                if 'search_after' in scroll_q:
+                    query["search_after"] = scroll_q['search_after']
+            else:
+                query = {
+                    "_source": False,
+                    "query": text,
+                    "size": top_k
+                }
         else:
             query = {
                 "_source": False,
                 "query": {"match": {"text": text}},
-                "size": top_k
+                "size": top_k,
+                "sort": {"_id": "desc"}
+
             }
 
         res = self.es.search(index=self.index_id, body=query)
-        results = [(float(h['_score']), int(h['_id'])) for h in res['hits']['hits']]
+        # print(res)
+        results = [(float(h.get('_score', 0.0)), int(h['_id'])) for h in res['hits']['hits']]
         return results
 
 
