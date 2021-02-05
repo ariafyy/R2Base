@@ -437,7 +437,7 @@ class Index(object):
             else:
                 # get random IDs
                 keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
-                ranks = {k: 1.0 for k, s in keys}
+                ranks = {_id: 1.0 for _id in keys}
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
 
