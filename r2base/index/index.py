@@ -427,14 +427,17 @@ class Index(object):
                                                                                           field, value, rank_k, None)
                                              for field, value in q_match.items())
             ranks = self._fuse_field_ranking(results)
-        else:
-            # get random IDs
-            keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
-            scores = np.random.random(len(keys))
-            ranks = {k: s for k, s in zip(keys, scores)}
 
-        if do_filter:
-            filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
+            if do_filter:
+                filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
+        else:
+            if do_filter:
+                filters = self.filter_index.select(q_filter, valid_ids=None)
+                ranks = {_id: 1.0 for _id in filters}
+            else:
+                # get random IDs
+                keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
+                ranks = {k: 1.0 for k, s in keys}
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
 
