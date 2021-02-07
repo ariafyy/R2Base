@@ -65,7 +65,7 @@ class KVIndex(IndexBase):
             self._set(client, key, value)
         else:
             for k, v in zip(key, value):
-                self._set(client, k, value)
+                self._set(client, k, v)
         client.commit()
 
     def get(self, key: Union[List[int], int]) -> Union[List[Dict], Dict]:
