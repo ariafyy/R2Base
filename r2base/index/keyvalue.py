@@ -47,16 +47,25 @@ class KVIndex(IndexBase):
     def size(self) -> int:
         return len(self.client)
 
+    def _set(self, client, key: int, value):
+        # we do not override the same key twice.
+        key = int(key)
+        if key in client:
+            raise Exception("_id {} already exists. Try update or delete".format(key))
+
+        client[key] = value
+        return True
+
     def set(self, key: Union[List[int], int], value) -> None:
         if key is None:
             self.logger.warning("Try to save in redis with None")
             return None
         client = self.client
         if type(key) is not list:
-            client[int(key)] = value
+            self._set(client, key, value)
         else:
             for k, v in zip(key, value):
-                client[int(k)] = v
+                self._set(client, k, v)
         client.commit()
 
     def get(self, key: Union[List[int], int]) -> Union[List[Dict], Dict]:
@@ -69,25 +78,46 @@ class KVIndex(IndexBase):
         else:
             return [client.get(int(k), dict()) for k in key]
 
-    def sample(self, size: int, return_value: bool = True) -> List:
-        if self.size() == 0:
+    def sample(self, size: int, return_value: bool = True, sample_mode='fixed') -> List:
+        if size == 0:
             return []
+
         client = self.client
         db_size = len(client)
+
+        if db_size == 0:
+            return []
+
+        db_keys = client.keys()
+
         if size >= db_size:
             random_ids = list(range(db_size))
         else:
-            random_ids = set(np.random.randint(0, len(client), size))
-            attempts = 0  # in case dead loop in a case that is impossible
-            while len(random_ids) < size and attempts < 1000:
-                r = np.random.randint(0, db_size)
-                attempts += 1
-                if r not in random_ids:
-                    random_ids.add(r)
-        res = []
-        for key_id, key in enumerate(client.keys()):
-            if key_id in random_ids:
-                res.append(int(key))
+            # evenly sample in the whole database
+            if sample_mode == 'fixed':
+                step = db_size//size
+                random_ids = set(np.arange(0, db_size, step).tolist()[0:size])
+
+            elif sample_mode == 'random':
+                random_ids = set(np.random.randint(0, len(client), size))
+                attempts = 0  # in case dead loop in a case that is impossible
+                while len(random_ids) < size and attempts < 1000:
+                    r = np.random.randint(0, db_size)
+                    attempts += 1
+                    if r not in random_ids:
+                        random_ids.add(r)
+            else:
+                raise Exception("Unknown sample mode {}".format(sample_mode))
+
+        # if db is too big, don't blow up the memory
+        if db_size < 100000:
+            db_keys = list(db_keys)
+            res = [int(db_keys[idx]) for idx in random_ids]
+        else:
+            res = []
+            for key_id, key in enumerate(db_keys):
+                if key_id in random_ids:
+                    res.append(int(key))
 
         if return_value:
             res = self.get(res)
@@ -139,9 +169,11 @@ if __name__ == "__main__":
     keys = list(range(10000))
     vals = [str(x) for x in keys]
     c.set(keys, vals)
+    for i in range(100):
+        assert len(c.sample(i)) == i
+    exit(1)
 
     import time
-
     print("Start paging")
     s_time = time.time()
     limit = 200

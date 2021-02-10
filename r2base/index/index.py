@@ -5,7 +5,7 @@ from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.index.keyvalue import KVIndex
 from r2base.index.filter import FilterIndex
-from r2base.mappings import parse_mapping, BasicMapping, TextMapping
+from r2base.mappings import parse_mapping, BasicMapping, TextMapping, TermScoreMapping
 from r2base.processors.pipeline import Pipeline, ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
@@ -24,9 +24,10 @@ if EnvVar.IV_BACKEND == 'ty':
     from r2base.index.iv.ty_inverted import TyBM25Index
     BM25Index = TyBM25Index
 elif EnvVar.IV_BACKEND == 'es':
-    from r2base.index.iv.es_inverted import EsBM25Index, EsInvertedIndex
+    from r2base.index.iv.es_inverted import EsBM25Index, EsQuantInvertedIndex, EsInvertedIndex
     BM25Index = EsBM25Index
     IvIndex = EsInvertedIndex
+    QuantIvIndex = EsQuantInvertedIndex
 else:
     raise Exception("Unknown IV Backend = {}".format(EnvVar.IV_BACKEND))
 
@@ -163,8 +164,15 @@ class Index(object):
                 self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
 
             elif mapping.type == FT.TERM_SCORE:
+                mapping : TermScoreMapping  = mapping
                 sub_id = self._sub_index_id(field)
-                self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                if mapping.mode == 'float':
+                    self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
+                elif mapping.mode == 'int':
+                    self._clients[field] = QuantIvIndex(self.index_dir, sub_id, mapping)
+                else:
+                    raise Exception("Unknown term score mode={}".format(mapping.mode))
+
 
         return self._clients.get(field)
 
@@ -358,23 +366,24 @@ class Index(object):
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
 
-    def _query_field(self, mapping, field: str, value: Any, rank_k: int):
+    def _query_field(self, mapping, field: str, value: Any, rank_k: int, q_sort: None):
         if field == FT.ID or self._is_filter(mapping.type):
             self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
             return [], None
-
         if type(value) is dict:
-            threshold = value['threshold']
-            value = value['value']
+                threshold = value.get('threshold', 0.0)
+                value = value['value']
         else:
             threshold = None
-
         if mapping.type == FT.TEXT:
-            mapping: TextMapping = mapping
-            pipe = Pipeline(mapping.q_processor)
-            kwargs = {'lang': mapping.lang, 'is_query': True}
-            value = pipe.run(value, **kwargs)
+            if type(value) is str:
+                mapping: TextMapping = mapping
+                pipe = Pipeline(mapping.q_processor)
+                kwargs = {'lang': mapping.lang, 'is_query': True}
+                value = pipe.run(value, **kwargs)
 
+        if q_sort:
+            value = {'value': value, 'scroll_query': q_sort}
         field_scores = self._get_sub_index(field, mapping).rank(value, rank_k)
         if threshold is not None:
             field_scores = [(score, _id) for score, _id in field_scores if score >= threshold]
@@ -397,6 +406,7 @@ class Index(object):
         :return:
         """
         q_match = q.get('match', {})
+        match_args = q.get('match_args', {})
         q_filter = q.get('filter', None)
         q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
@@ -406,7 +416,6 @@ class Index(object):
         if top_k <= 0:
             return []
 
-        ranks = dict()
         filters = set()
         do_filter = q_filter is not None
 
@@ -415,18 +424,20 @@ class Index(object):
         if len(q_match) > 0:
             n_job = max(1, min(5, len(q_match)))
             results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
-                                                                                          field, value, rank_k)
+                                                                                          field, value, rank_k, None)
                                              for field, value in q_match.items())
-
             ranks = self._fuse_field_ranking(results)
-        else:
-            # get random IDs
-            keys = self.id_index.sample(rank_k, return_value=False)
-            scores = np.random.random(len(keys))
-            ranks = {k: s for k, s in zip(keys, scores)}
 
-        if do_filter:
-            filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
+            if do_filter:
+                filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
+        else:
+            if do_filter:
+                filters = self.filter_index.select(q_filter, valid_ids=None)
+                ranks = {_id: 1.0 for _id in filters}
+            else:
+                # get random IDs
+                keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
+                ranks = {_id: 1.0 for _id in keys}
 
         docs = self._fuse_results(do_filter, ranks, filters, top_k)
 
@@ -447,6 +458,47 @@ class Index(object):
                 for d in docs:
                     for field in exclude:
                         d['_source'].pop(field, None)
-
         return docs
 
+
+    def scroll_query(self, q: Dict):
+        q_match = q.get('match', {})
+        match_args = q.get('match_args', {})
+        q_filter = q.get('filter', None)
+        top_k = q.get('size', 10)
+        exclude = q.get('exclude', [])
+        include = q.get('include', [])
+        sort_index = q.get('sort', {})
+        search_after = q.get('search_after', None)
+
+        if top_k <= 0:
+            return [], None
+
+        filters = set()
+        do_filter = q_filter is not None
+        rank_k = top_k
+        q_sort = {'sort': sort_index}
+
+        if search_after:
+            q_sort['search_after'] = search_after
+
+        if len(q_match) > 0:
+            n_job = max(1, min(5, len(q_match)))
+            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
+                                                                                          field, value, rank_k, q_sort)
+                                                               for field, value in q_match.items())
+
+            ranks = self._fuse_field_ranking(results)
+        else:
+            pass
+
+        if do_filter:
+            filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
+        # print(results)
+        if results[0][0]:
+            last_id = results[0][0][-1][-1]
+        else:
+            last_id = None
+        docs = self._fuse_results(do_filter, ranks, filters, top_k)
+
+        return docs, last_id

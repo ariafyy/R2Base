@@ -15,5 +15,13 @@
         "tokenizer": "cutter_tokenizer"
       }
     }
+  },
+  "similarity": {
+    "tf_alone": {
+        "type": "scripted",
+        "script": {
+            "source": "double tf = doc.freq; return tf;"
+        }
+    }
   }
 }

@@ -8,6 +8,12 @@ class Search(BaseModel):
     reads: List = []
 
 
+class ScrollSearch(BaseModel):
+    took: int
+    ranks: List = []
+    reads: List = []
+    last_id: Union[int, None]
+
 class DocWrite(BaseModel):
     took: int
     doc_ids: List[int]

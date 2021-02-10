@@ -10,4 +10,7 @@ class Ranker(EngineBase):
     def query(self, index_id: str, q: Dict):
         return self.get_index(index_id).query(q)
 
+    def scroll_query(self, index_id: str, q: Dict):
+        return self.get_index(index_id).scroll_query(q)
+
 
