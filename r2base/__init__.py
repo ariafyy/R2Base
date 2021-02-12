@@ -22,3 +22,4 @@ class IndexType(object):
     FILTER = "filter"
     BM25 = "bm25"
     LOOKUP = "lookup"
+    RANK = "rank"
