@@ -1,10 +1,8 @@
 from typing import Union, List
 from r2base import FieldType as FT
-from r2base import IndexType as IT
-from r2base.index import IndexBase
 from r2base.index.keyvalue import KVIndex
-from r2base.mappings import parse_mapping, BasicMapping, TextMapping, TermScoreMapping
-from r2base.processors.pipeline import Pipeline, ReducePipeline
+from r2base.mappings import parse_mapping, BasicMapping
+from r2base.processors.pipeline import ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
 from joblib import Parallel, delayed
@@ -14,7 +12,7 @@ import json
 import logging
 import shutil
 import string
-from r2base.index.iv.es_full import EsIndex
+from r2base.index.es_full import EsIndex
 
 
 class Index(object):
@@ -84,103 +82,6 @@ class Index(object):
 
         temp = {k: v.dict() for k, v in mappings.items()}
         return json.dump(temp, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
-
-    def _fuse_results(self, do_filter: bool, ranks: Dict, filters: Set, top_k: int) -> List[Dict]:
-        """
-        Given ranks and filters to create final top-K list
-        :param do_rank: does the query contain non empty match
-        :param do_filter: does the query contain non empty filter
-        :param ranks: retrieved docs with scores
-        :param filters: valid list of doc_ids
-        :param top_k: the size of return
-        :return:
-        """
-        if len(ranks) == 0 and len(filters) == 0:
-            return []
-
-        if len(ranks) == 0:
-            return []
-
-        if do_filter:
-            if len(filters) == 0:
-                return []
-            else:
-                filtered_ranks = [(k, v) for k, v in ranks.items() if k in filters]
-                filtered_ranks = sorted(filtered_ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-                sources = self.id_index.get([_id for _id, s in filtered_ranks])
-                scores = [s for _id, s in filtered_ranks]
-        else:
-            ranks = [(k, v) for k, v in ranks.items()]
-            ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-            sources = self.id_index.get([_id for _id, s in ranks])
-            scores = [s for _id, s in ranks]
-
-        docs = [{'_source': src, 'score': score} for src, score in zip(sources, scores)]
-
-        return docs
-
-    def _get_sub_index(self, field: str, mapping) -> IndexBase:
-        if field not in self._clients:
-            if field == FT.ID:
-                self._clients[field] = KVIndex(self.index_dir, self._sub_index_id(FT.ID), mapping)
-
-            elif field == IT.FILTER:
-                self._clients[field] = FilterIndex(self.index_dir, self._sub_index_id(field), mapping)
-
-            elif mapping.type == FT.TEXT:
-                mapping: TextMapping = mapping
-                sub_id = self._sub_index_id(field)
-                index_mapping = parse_mapping(mapping.index_mapping)
-                if mapping.index == IT.BM25:
-                    self._clients[field] = BM25Index(self.index_dir, sub_id, mapping)
-                elif mapping.index == IT.VECTOR:
-                    self._clients[field] = VectorIndex(self.index_dir, sub_id, index_mapping)
-                elif mapping.index == IT.INVERTED:
-                    self._clients[field] = IvIndex(self.index_dir, sub_id, index_mapping)
-
-            elif mapping.type == FT.VECTOR:
-                sub_id = self._sub_index_id(field)
-                self._clients[field] = VectorIndex(self.index_dir, sub_id, mapping)
-
-            elif mapping.type == FT.TERM_SCORE:
-                mapping : TermScoreMapping  = mapping
-                sub_id = self._sub_index_id(field)
-                if mapping.mode == 'float':
-                    self._clients[field] = IvIndex(self.index_dir, sub_id, mapping)
-                elif mapping.mode == 'int':
-                    self._clients[field] = QuantIvIndex(self.index_dir, sub_id, mapping)
-                else:
-                    raise Exception("Unknown term score mode={}".format(mapping.mode))
-
-
-        return self._clients.get(field)
-
-    def _fuse_field_ranking(self, results: List):
-        ranks = dict()
-        must_only_ids = dict()
-        for idx, (field_scores, threshold) in enumerate(results):
-            if threshold is not None:
-                must_only_ids[idx] = set()
-
-            for score, _id in field_scores:
-                if threshold is not None:
-                    must_only_ids[idx].add(_id)
-
-                ranks[_id] = score + ranks.get(_id, 0.0)
-
-        if len(must_only_ids) > 0:
-            temp = None
-            for k, v in must_only_ids.items():
-                if temp is None:
-                    temp = v
-                else:
-                    if len(temp) == 0:
-                        break
-                    temp = temp.intersection(v)
-
-            ranks = {k: v for k, v in ranks.items() if k in temp}
-
-        return ranks
 
     @property
     def id_index(self) -> KVIndex:
@@ -282,48 +183,14 @@ class Index(object):
             self.id_index.set(batch_ids, batch)
 
             # insert filter fields
-            self.filter_index.add(batch, batch_ids)
-
-            # insert each field that needs ranking
-            for field, mapping in self.mappings.items():
-                valid_ids, valid_docs = [], []
-                for d in batch:
-                    if field not in d:
-                        self.logger.info("{} is missing in document".format(field))
-                        continue
-                    valid_ids.append(d[FT.ID])
-                    valid_docs.append(d)
-
-                if mapping.type == FT.TEXT:
-                    mapping: TextMapping = mapping
-                    pipe = Pipeline(mapping.processor)
-                    kwargs = {'lang': mapping.lang, 'is_query': False}
-                    annos = pipe.run([b_d[field] for b_d in valid_docs], **kwargs)
-
-                    if mapping.index == IT.BM25:
-                        self._get_sub_index(field, mapping).add(annos, valid_ids)
-
-                    elif mapping.index == IT.INVERTED:
-                        self._get_sub_index(field, mapping).add(annos, valid_ids)
-
-                elif mapping.type == FT.VECTOR:
-                    vectors = [b_d[field] for b_d in valid_docs]
-                    self._get_sub_index(field, mapping).add(vectors, valid_ids)
-
-                elif mapping.type== FT.TERM_SCORE:
-                    ts = [b_d[field] for b_d in valid_docs]
-                    self._get_sub_index(field, mapping).add(ts, valid_ids)
+            self.rank_index.add(batch, batch_ids)
 
         return ids
 
     def delete_docs(self, doc_ids: Union[int, List[int]]) -> None:
         # delete the doc from ID index, Filter Index and Every Rank index.
         self.id_index.delete(doc_ids)
-        self.filter_index.delete(doc_ids)
-
-        for field, mapping in self.mappings.items():
-            if mapping.type in FT.MATCH_TYPES:
-                self._get_sub_index(field, mapping).delete(doc_ids)
+        self.rank_index.delete(doc_ids)
 
     def read_docs(self, doc_ids: Union[int, List[int]]) -> Union[Dict, List]:
         """
@@ -344,30 +211,6 @@ class Index(object):
         self.delete_docs(doc_ids)
         ids = self.add_docs(docs, batch_size, show_progress)
         return ids
-
-    def _query_field(self, mapping, field: str, value: Any, rank_k: int, q_sort: None):
-        if field == FT.ID or self._is_filter(mapping.type):
-            self.logger.warn("Filter or _ID field {} is ignored in match block".format(field))
-            return [], None
-        if type(value) is dict:
-                threshold = value.get('threshold', 0.0)
-                value = value['value']
-        else:
-            threshold = None
-        if mapping.type == FT.TEXT:
-            if type(value) is str:
-                mapping: TextMapping = mapping
-                pipe = Pipeline(mapping.q_processor)
-                kwargs = {'lang': mapping.lang, 'is_query': True}
-                value = pipe.run(value, **kwargs)
-
-        if q_sort:
-            value = {'value': value, 'scroll_query': q_sort}
-        field_scores = self._get_sub_index(field, mapping).rank(value, rank_k)
-        if threshold is not None:
-            field_scores = [(score, _id) for score, _id in field_scores if score >= threshold]
-
-        return field_scores, threshold
 
     def query(self, q: Dict) -> List[Dict]:
         """
@@ -395,30 +238,11 @@ class Index(object):
         if top_k <= 0:
             return []
 
-        filters = set()
-        do_filter = q_filter is not None
-
-        rank_k = min(10000, top_k*10 if do_filter else top_k)
-
-        if len(q_match) > 0:
-            n_job = max(1, min(5, len(q_match)))
-            results = Parallel(n_jobs=n_job, prefer="threads")(delayed(self._query_field)(self.mappings[field],
-                                                                                          field, value, rank_k, None)
-                                             for field, value in q_match.items())
-            ranks = self._fuse_field_ranking(results)
-
-            if do_filter:
-                filters = self.filter_index.select(q_filter, valid_ids=list(ranks.keys()))
-        else:
-            if do_filter:
-                filters = self.filter_index.select(q_filter, valid_ids=None)
-                ranks = {_id: 1.0 for _id in filters}
-            else:
-                # get random IDs
-                keys = self.id_index.sample(rank_k, return_value=False, sample_mode=match_args.get('sample_mode', 'fixed'))
-                ranks = {_id: 1.0 for _id in keys}
-
-        docs = self._fuse_results(do_filter, ranks, filters, top_k)
+        ranks = self.rank_index.rank(q_match, q_filter, top_k)
+        sources = self.id_index.get([_id for _id, s in ranks])
+        docs = []
+        for idx in range(len(docs)):
+            docs.append({'_source': sources[idx], 'score': ranks[idx][1]})
 
         if q_reduce is not None and q_reduce:
             docs = ReducePipeline().run(q_reduce, docs)

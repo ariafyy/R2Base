@@ -6,7 +6,7 @@ from r2base.index.field_ops.text import TextField
 from r2base.index.field_ops.iv import InvertedField
 from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
-from typing import List, Union, Dict, Optional
+from typing import List, Union, Dict, Optional, Tuple
 
 
 class EsIndex(EsBaseIndex):
@@ -89,14 +89,14 @@ class EsIndex(EsBaseIndex):
         res = self.es.sql.translate({'query': sql_filter})
         return res['query']
 
-    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> Dict[int, float]:
+    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Tuple[int, float]]:
         """
         :param match: a dictionary that contains match and filters
         :param ctx_filter: a SQL string None if not given
         :param top_k: return top_k
         :return:
         """
-        # TODO support advanced query
+        # TODO: 1. scroll_query, 2. advanced query 3. threshold
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
         else:
@@ -143,7 +143,9 @@ class EsIndex(EsBaseIndex):
             for score, doc_id in ranks:
                 fuse_res[doc_id] = score + fuse_res.get(doc_id, 0.0)
 
-        return fuse_res
+        ranks = [(k, v) for k, v in fuse_res.items()]
+        ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
+        return ranks
 
 
 if __name__ == "__main__":
