@@ -1,5 +1,6 @@
 from typing import Union, List
 from r2base import FieldType as FT
+from r2base import IndexType as IT
 from r2base.index.keyvalue import KVIndex
 from r2base.mappings import parse_mapping, BasicMapping
 from r2base.processors.pipeline import ReducePipeline
@@ -31,14 +32,14 @@ class Index(object):
         return {'_id'}
 
     def _validate_index_id(self, index_id):
-        check = set(string.digits + string.ascii_letters + '-_')
+        check = set(string.digits + string.ascii_letters + '_')
         for x in index_id:
             if x not in check:
-                raise Exception("Invalid index_id. It only contains letters, numbers, - and _.")
+                raise Exception("Invalid index_id. It only contains letters, numbers, and _.")
 
     def _sub_index_id(self, field: str):
         # index-text
-        return '{}-{}'.format(self.index_id, field)
+        return '{}_{}'.format(self.index_id, field)
 
     def _is_filter(self, field_type):
         return field_type in FT.FILTER_TYPES
@@ -93,7 +94,7 @@ class Index(object):
     def rank_index(self) -> EsIndex:
         if self._rank_index is None:
             # filter mappings
-            self._rank_index = EsIndex(self.index_dir, self._sub_index_id(FT.ID), self.mappings)
+            self._rank_index = EsIndex(self.index_dir, self._sub_index_id(IT.RANK), self.mappings)
         return self._rank_index
 
     def create_index(self, mappings: Dict) -> None:
@@ -241,7 +242,7 @@ class Index(object):
         ranks = self.rank_index.rank(q_match, q_filter, top_k)
         sources = self.id_index.get([_id for _id, s in ranks])
         docs = []
-        for idx in range(len(docs)):
+        for idx in range(len(ranks)):
             docs.append({'_source': sources[idx], 'score': ranks[idx][1]})
 
         if q_reduce is not None and q_reduce:
