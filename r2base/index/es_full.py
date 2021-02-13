@@ -6,7 +6,7 @@ from r2base.index.field_ops.text import TextField
 from r2base.index.field_ops.iv import InvertedField
 from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
-from typing import List, Tuple, Union, Dict, Optional
+from typing import List, Union, Dict, Optional
 
 
 class EsIndex(EsBaseIndex):
@@ -84,14 +84,24 @@ class EsIndex(EsBaseIndex):
         else:
             self.logger.warn("Skip add since data is empty.")
 
-    def rank(self, match: Dict, filter: Optional[str], top_k: int) -> Dict[int, float]:
+    def _sql2json(self, sql_filter: str):
+        sql_filter = 'SELECT * FROM {} WHERE {}'.format(self.index_id, sql_filter)
+        res = self.es.sql.translate({'query': sql_filter})
+        return res['query']
+
+    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> Dict[int, float]:
         """
         :param match: a dictionary that contains match and filters
-        :param filter: a SQL string None if not given
+        :param ctx_filter: a SQL string None if not given
         :param top_k: return top_k
         :return:
         """
         # TODO support advanced query
+        if sql_filter is not None and sql_filter:
+            json_filter = self._sql2json(sql_filter)
+        else:
+            json_filter = None
+
         es_qs = []
         keys = []
         for field, value in match.items():
@@ -100,13 +110,13 @@ class EsIndex(EsBaseIndex):
             mapping = self.mapping[field]
             body = None
             if mapping.type == FT.TEXT:
-                body = TextField.to_query_body(field, mapping, value, top_k)
+                body = TextField.to_query_body(field, mapping, value, top_k, json_filter)
 
             elif mapping.type == FT.VECTOR:
-                body = VectorField.to_query_body(field, mapping, value, top_k)
+                body = VectorField.to_query_body(field, mapping, value, top_k, json_filter)
 
             elif mapping.type == FT.TERM_SCORE:
-                body = InvertedField.to_query_body(field, mapping, value, top_k)
+                body = InvertedField.to_query_body(field, mapping, value, top_k, json_filter)
 
             if body is not None:
                 keys.append(field)
@@ -138,14 +148,18 @@ class EsIndex(EsBaseIndex):
 
 if __name__ == "__main__":
     import time
-    from r2base.mappings import VectorMapping,TextMapping,TermScoreMapping
+    from r2base.mappings import VectorMapping,TextMapping,TermScoreMapping, BasicMapping
     root = '.'
-    idx = 'full-es-test'
+    idx = 'full_es_test'
     mapping = {
         'vector': VectorMapping(type=FT.VECTOR, num_dim=4),
         'ts': TermScoreMapping(type=FT.TERM_SCORE, mode='int'),
-        'text': TextMapping(type=FT.TEXT, lang='zh', index='bm25')
-
+        'f_ts': TermScoreMapping(type=FT.TERM_SCORE, mode='float'),
+        'text': TextMapping(type=FT.TEXT, lang='zh', index='bm25'),
+        'kw': BasicMapping(type=FT.KEYWORD),
+        'time': BasicMapping(type=FT.DATE),
+        'int': BasicMapping(type=FT.INT),
+        'flt': BasicMapping(type=FT.FLOAT)
     }
     i = EsIndex(root, idx, mapping)
     """
@@ -154,17 +168,32 @@ if __name__ == "__main__":
     doc1 = {
         'text': '我是深圳人',
         'vector': [0.1, 0.4, 0.3, 0.2],
-        'ts': {'a': 0.4, 'b': 0.2, 'c': 0.1}
+        'ts': {'a': 0.4, 'b': 0.2, 'c': 0.1},
+        'f_ts': {'d': 0.4, 'e': 0.2, 'f': 0.1},
+        'kw': 'city',
+        'time': '2015-01-01',
+        'int': 100,
+        'flt': 12.4
     }
     doc2 = {
         'text': '我是北京人',
         'vector': [1.0, -0.4, 3.3, 0.2],
-        'ts': {'a': 0.1, 'b': 0.2, 'c': 0.4}
+        'ts': {'a': 0.1, 'b': 0.2, 'c': 0.4},
+        'f_ts': {'d': 0.1, 'e': 0.2, 'f': 0.4},
+        'kw': 'captial',
+        'time': '2018-01-01',
+        'int': 10,
+        'flt': 2.4
     }
     doc3 = {
         'text': '我是杭州人',
         'vector': [0.5, 0.4, -2.3, -1.2],
-        'ts': {'a': 0.1, 'b': 1.0, 'c': 0.1}
+        'ts': {'a': 0.1, 'b': 1.0, 'c': 0.1},
+        'f_ts': {'d': 0.1, 'e': 1.0, 'f': 0.1},
+        'kw': 'city',
+        'time': '2016-01-01',
+        'int': 1000,
+        'flt': 1200.4
     }
 
     i.add(doc1, 1)
@@ -174,8 +203,9 @@ if __name__ == "__main__":
     """
     x = i.rank({'text': '杭州',
                 'vector': [1.0, -0.4, 3.3, 0.2],
-                'ts': ['a', 'b']
+                'ts': ['a', 'b'],
+                'f_ts': ['f']
                 },
-           None, 10)
+           "int>3 AND flt < 3000 AND time>2010-01-01", 10)
     print(x)
 

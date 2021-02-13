@@ -1,6 +1,6 @@
 from r2base.index.util_bases import FieldOpBase
 from r2base.mappings import VectorMapping
-from typing import List
+from typing import List, Optional, Dict
 
 
 class VectorField(FieldOpBase):
@@ -15,21 +15,37 @@ class VectorField(FieldOpBase):
         return vector
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: VectorMapping, vector: List[float], top_k: int):
+    def to_query_body(cls, key: str, mapping: VectorMapping, vector: List[float], top_k: int, json_filter: Optional[Dict]):
         assert len(vector) == mapping.num_dim
-        query = {
-            "_source": False,
-            'query': {
-                "script_score": {
-                    'query': {"match_all": {}},
-                    "script": {
-                        "source": "cosineSimilarity(params.query_vector, '{}') + 1.0".format(key),
-                        "params": {
-                            "query_vector": vector
-                        }
-                    }}},
-            "size": top_k
-        }
+        if json_filter is None:
+            query = {
+                "_source": False,
+                'query': {
+                    "script_score": {
+                        'query': {"match_all": {}},
+                        "script": {
+                            "source": "cosineSimilarity(params.query_vector, '{}') + 1.0".format(key),
+                            "params": {
+                                "query_vector": vector
+                            }
+                        }}},
+                "size": top_k
+            }
+        else:
+            query = {
+                "_source": False,
+                'query': {
+                    "script_score": {
+                        'query': {"bool": {"filter": json_filter}},
+                        "script": {
+                            "source": "cosineSimilarity(params.query_vector, '{}') + 1.0".format(key),
+                            "params": {
+                                "query_vector": vector
+                            }
+                        }}},
+                "size": top_k
+            }
+
         return query
 
     @classmethod

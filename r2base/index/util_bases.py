@@ -71,8 +71,8 @@ class FieldOpBase(object):
     def to_add_body(self, mapping, value):
         raise NotImplementedError
 
-    def to_query_body(self, key, mapping, query, top_k):
-        raise NotImplementedError
+    def to_query_body(self, key, mapping, query, top_k, json_filter):
+        pass
 
     def hits2ranks(self, mapping, hits):
         pass

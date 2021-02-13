@@ -1,6 +1,6 @@
 from r2base.index.util_bases import FieldOpBase
 from r2base.mappings import TermScoreMapping
-from typing import Dict, List
+from typing import Dict, List, Optional
 import logging
 import numpy as np
 
@@ -10,10 +10,11 @@ class InvertedField(FieldOpBase):
 
     ALPHA = 10.0
     MAX_NUM_COPY = 100
+
     @classmethod
     def to_mapping(self, mapping: TermScoreMapping):
         if mapping.mode == 'float':
-            return {"term_scores": {"type": "rank_features"}}
+            return {"type": "rank_features"}
 
         elif mapping.mode == 'int':
             return {"type": "text", "index_options": "freqs",
@@ -36,23 +37,38 @@ class InvertedField(FieldOpBase):
             raise Exception("Unknown term score mode={}".format(mapping.mode))
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: TermScoreMapping, tokens: List[str], top_k: int):
+    def to_query_body(cls, key: str, mapping: TermScoreMapping, tokens: List[str], top_k: int, json_filter: Optional[Dict]):
         if mapping.mode == 'float':
             main_query = [{'rank_feature': {'field': '{}.{}'.format(key, t),
                                             "log": {"scaling_factor": 1.0}
                                             }} for t in tokens]
-            es_query = {
-                "_source": False,
-                "query": {"bool": {"should": main_query}},
-                "size": top_k
-            }
+            if json_filter is None:
+                es_query = {
+                    "_source": False,
+                    "query": {"bool": {"should": main_query}},
+                    "size": top_k
+                }
+            else:
+                es_query = {
+                    "_source": False,
+                    "query": {"bool": {"should": main_query, "filter": json_filter}},
+                    "size": top_k
+                }
             return es_query
         elif mapping.mode == 'int':
-            es_query = {
-                "_source": False,
-                "query": {"match": {key: '/'.join(tokens)}},
-                "size": top_k
-            }
+            if json_filter is None:
+                es_query = {
+                    "_source": False,
+                    "query": {"match": {key: '/'.join(tokens)}},
+                    "size": top_k
+                }
+            else:
+                value = '/'.join(tokens)
+                es_query = {
+                    "_source": False,
+                    "query": {"bool": {"must": {"match": {key: value}}, "filter": json_filter}},
+                    "size": top_k
+                }
             return es_query
         else:
             raise Exception("Unknown term score mode={}".format(mapping.mode))
