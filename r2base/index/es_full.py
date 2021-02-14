@@ -104,10 +104,20 @@ class EsIndex(EsBaseIndex):
 
         es_qs = []
         keys = []
+        ths = []
         for field, value in match.items():
             if field not in self.valid_fields:
                 continue
+
             mapping = self.mapping[field]
+
+            if type(value) is dict:
+                threshold = value.get('threshold', 0.0)
+                value = value['value']
+            else:
+                threshold = None
+            ths.append(threshold)
+
             body = None
             if mapping.type == FT.TEXT:
                 body = TextField.to_query_body(field, mapping, value, top_k, json_filter)
@@ -136,6 +146,11 @@ class EsIndex(EsBaseIndex):
 
             elif mapping.type == FT.TERM_SCORE:
                 m_ranks[key] = InvertedField.hits2ranks(mapping, res)
+
+            threshold = ths[k_id]
+            if threshold is not None:
+                temp = m_ranks[key]
+                m_ranks[key] = [(score, _id) for score, _id in temp if score >= threshold]
 
         # combine score from different fields
         fuse_res = dict()
