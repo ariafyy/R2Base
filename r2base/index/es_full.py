@@ -89,19 +89,39 @@ class EsIndex(EsBaseIndex):
         res = self.es.sql.translate({'query': sql_filter})
         return res['query']
 
-    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Tuple[int, float]]:
-        """
-        :param match: a dictionary that contains match and filters
-        :param ctx_filter: a SQL string None if not given
-        :param top_k: return top_k
-        :return:
-        """
-        # TODO: 1. scroll_query, 2. advanced query 3. threshold
-        if sql_filter is not None and sql_filter:
-            json_filter = self._sql2json(sql_filter)
-        else:
-            json_filter = None
+    def _fuse_ranks(self, m_ranks, top_k: int):
+        # combine score from different fields
+        fuse_res = dict()
+        for key, ranks in m_ranks.items():
+            for score, doc_id in ranks:
+                fuse_res[doc_id] = score + fuse_res.get(doc_id, 0.0)
 
+        ranks = [(k, v) for k, v in fuse_res.items()]
+        ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
+        return ranks
+
+    def _empty_query(self, json_filter, top_k):
+        if json_filter is None:
+            es_query = {
+                "_source": False,
+                "query": {"match_all": {}},
+                "size": top_k
+            }
+        else:
+            es_query = {
+                "_source": False,
+                "query": {"bool": {"must": {"match_all": {}}, "filter": json_filter}},
+                "size": top_k
+            }
+
+        res = self.es.search(body=es_query, index=self.index_id)
+        rank = []
+        for h in res['hits']['hits']:
+            rank.append((h.get('_score', 0.0), int(h['_id'])) if h['_score'] else (0.0, int(h['_id'])))
+
+        return {None: rank}
+
+    def _query(self, match: dict, json_filter, top_k: int):
         es_qs = []
         keys = []
         ths = []
@@ -152,14 +172,26 @@ class EsIndex(EsBaseIndex):
                 temp = m_ranks[key]
                 m_ranks[key] = [(score, _id) for score, _id in temp if score >= threshold]
 
-        # combine score from different fields
-        fuse_res = dict()
-        for key, ranks in m_ranks.items():
-            for score, doc_id in ranks:
-                fuse_res[doc_id] = score + fuse_res.get(doc_id, 0.0)
+        return m_ranks
 
-        ranks = [(k, v) for k, v in fuse_res.items()]
-        ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
+    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Tuple[int, float]]:
+        """
+        :param match: a dictionary that contains match and filters
+        :param ctx_filter: a SQL string None if not given
+        :param top_k: return top_k
+        :return:
+        """
+        if sql_filter is not None and sql_filter:
+            json_filter = self._sql2json(sql_filter)
+        else:
+            json_filter = None
+
+        if match and len(match) > 0:
+            m_ranks = self._query(match, json_filter, top_k)
+        else:
+            m_ranks = self._empty_query(json_filter, top_k)
+
+        ranks = self._fuse_ranks(m_ranks, top_k)
         return ranks
 
 
