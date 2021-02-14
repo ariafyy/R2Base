@@ -48,7 +48,7 @@ if __name__ == "__main__":
     }
     docs = []
     chunk_size = 100
-    index = 'wiki-es'
+    index = 'wiki_es'
     indexer.delete_index(index)
     indexer.create_index(index, mapping)
     cnt = 0

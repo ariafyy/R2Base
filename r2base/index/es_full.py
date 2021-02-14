@@ -85,7 +85,7 @@ class EsIndex(EsBaseIndex):
             self.logger.warn("Skip add since data is empty.")
 
     def _sql2json(self, sql_filter: str):
-        sql_filter = 'SELECT * FROM {} WHERE {}'.format(self.index_id, sql_filter)
+        sql_filter = 'SELECT * FROM "{}" WHERE {}'.format(self.index_id, sql_filter)
         res = self.es.sql.translate({'query': sql_filter})
         return res['query']
 

@@ -32,10 +32,10 @@ class Index(object):
         return {'_id'}
 
     def _validate_index_id(self, index_id):
-        check = set(string.digits + string.ascii_letters + '_')
+        check = set(string.digits + string.ascii_letters + '_-s')
         for x in index_id:
             if x not in check:
-                raise Exception("Invalid index_id. It only contains letters, numbers, and _.")
+                raise Exception("Invalid index_id. It only contains letters, numbers, and _-.")
 
     def _sub_index_id(self, field: str):
         # index-text
