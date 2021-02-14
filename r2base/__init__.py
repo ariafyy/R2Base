@@ -8,6 +8,7 @@ class FieldType(object):
     VECTOR = "vector"
     TERM_SCORE = "term_score"
     TEXT = "text"
+    META = "meta"
     DATE = "date"
     DATETIME = "datetime"
 

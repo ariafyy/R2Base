@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from r2base import FieldType as FT
-from typing import Dict
+from typing import Dict, Any
 
 
 def parse_mapping(mapping: dict):
@@ -30,10 +30,16 @@ def parse_mapping(mapping: dict):
     if basic_map.type == FT.TEXT:
         return TextMapping.parse_obj(mapping)
 
+    if basic_map.type == FT.META:
+        return MetaMapping.parse_obj(mapping)
+
 
 class BasicMapping(BaseModel):
     type: str
 
+
+class MetaMapping(BasicMapping):
+    value: Any
 
 class VectorMapping(BasicMapping):
     num_dim: int
@@ -69,6 +75,15 @@ class TextMapping(BasicMapping):
 
 
 if __name__ == "__main__":
+    x = MetaMapping.parse_obj({"type": "text",
+                               "value": {
+                                   "lang": "zh",
+                                   "index": "bm25",
+                                   "index_mapping": {"type": "vector", "num_dim": 123}
+                               }
+                             })
+    print(x.dict())
+    exit()
     x = TextMapping.parse_obj({"type": "text",
                                "lang": "zh",
                                "index": "bm25",

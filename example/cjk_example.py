@@ -22,7 +22,10 @@ if __name__ == "__main__":
         'text': {'type': 'text',
                  'lang': 'zh',
                  'index': 'bm25'
-                 }
+                 },
+        '_meta': {"type": "meta",
+                  "value": {"ok": {"encoder_id": "okok",
+                                   "score": "123"}}}
     }
     docs = []
     chunk_size = 10
