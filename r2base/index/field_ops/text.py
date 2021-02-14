@@ -26,19 +26,34 @@ class TextField(FieldOpBase):
     def to_query_body(cls, key: str, mapping: TextMapping, query: str, top_k: int, json_filter: Optional[Dict]):
         pipe = Pipeline(mapping.q_processor)
         kwargs = {'lang': mapping.lang, 'is_query': True}
-        value = pipe.run(query, **kwargs)
-        if json_filter is None:
-            es_query = {
-                "_source": False,
-                "query": {"match": {key: value}},
-                "size": top_k
-            }
+
+        if type(query) is dict:
+            if json_filter is None:
+                es_query = {
+                    "_source": False,
+                    "query": query,
+                    "size": top_k
+                }
+            else:
+                es_query = {
+                    "_source": False,
+                    "query": {"bool": {"must": query, "filter": json_filter}},
+                    "size": top_k
+                }
         else:
-            es_query = {
-                "_source": False,
-                "query": {"bool": {"must": {"match": {key: value}}, "filter": json_filter}},
-                "size": top_k
-            }
+            value = pipe.run(query, **kwargs)
+            if json_filter is None:
+                es_query = {
+                    "_source": False,
+                    "query": {"match": {key: value}},
+                    "size": top_k
+                }
+            else:
+                es_query = {
+                    "_source": False,
+                    "query": {"bool": {"must": {"match": {key: value}}, "filter": json_filter}},
+                    "size": top_k
+                }
         return es_query
 
     @classmethod
