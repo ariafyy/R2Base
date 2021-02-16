@@ -12,20 +12,14 @@ from typing import List, Union, Dict, Optional, Tuple
 
 class EsIndex(EsBaseIndex):
     type = IT.RANK
+    _ID = "_uid"
 
-    @property
-    def valid_fields(self):
-        fields = set()
+    def __init__(self, root_dir: str, index_id: str, mapping):
+        super().__init__(root_dir, index_id, mapping)
+        self._default_src = None
 
-        for field, mapping in self.mapping.items():
-            if mapping.type in {FT.TEXT, FT.VECTOR, FT.TERM_SCORE}:
-                fields.add(field)
-
-            elif mapping.type in FT.FILTER_TYPES:
-                fields.add(field)
-        return fields
-
-    def _get_field_op(self, f_type):
+    @classmethod
+    def _get_field_op(cls, f_type):
         if f_type == FT.TEXT:
             return TextField
 
@@ -44,11 +38,26 @@ class EsIndex(EsBaseIndex):
         else:
             raise Exception("Unknown field type {}".format(f_type))
 
+    @property
+    def default_src(self):
+        if self._default_src is None:
+            temp = [self._ID]
+            temp_list = FT.FILTER_TYPES
+            temp_list.add(FT.TEXT)
+            temp_list.add(FT.OBJECT)
+
+            for field, mapping in self.mapping.items():
+                if mapping.type in temp_list:
+                    temp.append(field)
+
+            self._default_src = temp
+
+        return self._default_src
 
     def create_index(self) -> None:
         params = {"timeout": '60s'}
         setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
-        properties = {'_oid': {'type': 'keyword'}}
+        properties = {self._ID: {'type': 'keyword'}}
 
         for field, mapping in self.mapping.items():
             properties[field] = self._get_field_op(mapping.type).to_mapping(mapping)
@@ -69,13 +78,10 @@ class EsIndex(EsBaseIndex):
         for doc, doc_id in zip(data, doc_ids):
             body = {}
             for field, value in doc.items():
-                if field not in self.valid_fields:
-                    continue
-
                 mapping = self.mapping[field]
                 body[field] = self._get_field_op(mapping.type).to_add_body(mapping, value)
 
-            body['_oid'] = doc_id
+            body[self._ID] = str(doc_id)
             body['_op_type'] = 'index'
             body['_index'] = self.index_id
             index_data.append(body)
@@ -101,35 +107,54 @@ class EsIndex(EsBaseIndex):
         ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
         return ranks
 
-    def _empty_query(self, json_filter, top_k):
+    def _get_src_filters(self, includes: Optional[List], excludes: Optional[List]):
+        if includes is not None and self._ID not in includes:
+            includes = includes + [self._ID]
+
+        if excludes is not None and self._ID in excludes:
+            excludes = [e for e in excludes if e != self._ID]
+
+        if includes is None and excludes is None:
+            return self.default_src
+        elif includes is None and excludes is not None:
+            return {'excludes': excludes}
+        elif includes is None and excludes is not None:
+            return {'includes': includes}
+        else:
+            return {'includes': includes, 'excludes': excludes}
+
+
+    def _empty_query(self, json_filter, top_k, includes=None, excludes=None):
+        src_filter = self._get_src_filters(includes, excludes)
+
         if json_filter is None:
             es_query = {
-                "_source": False,
+                "_source": src_filter,
                 "query": {"match_all": {}},
                 "size": top_k
             }
         else:
             es_query = {
-                "_source": False,
+                "_source": src_filter,
                 "query": {"bool": {"must": {"match_all": {}}, "filter": json_filter}},
                 "size": top_k
             }
 
         res = self.es.search(body=es_query, index=self.index_id)
-        rank = []
+        docs = []
         for h in res['hits']['hits']:
-            rank.append((h.get('_score', 0.0), int(h['_id'])) if h['_score'] else (0.0, int(h['_id'])))
+            score = h.get('_score', 0.0) if h['_score'] else 0.0
+            docs.append({'score': score, '_source': h['_source']})
 
-        return {None: rank}
+        return docs
 
-    def _query(self, match: dict, json_filter, top_k: int):
+    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None):
         es_qs = []
         keys = []
         ths = []
-        for field, value in match.items():
-            if field not in self.valid_fields:
-                continue
+        src_filter = self._get_src_filters(includes, excludes)
 
+        for field, value in match.items():
             mapping = self.mapping[field]
 
             if type(value) is dict:
@@ -137,35 +162,44 @@ class EsIndex(EsBaseIndex):
                 value = value['value']
             else:
                 threshold = None
+
             ths.append(threshold)
 
             if mapping.type in FT.MATCH_TYPES:
-                body = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter)
+                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter)
+                es_query['_source'] = src_filter
                 keys.append(field)
                 es_qs.append({'index': self.index_id})
-                es_qs.append(body)
+                es_qs.append(es_query)
 
         m_res = self.es.msearch(body=es_qs)
-        m_ranks = {}
+        id2score = {}
+        id2src = {}
         for k_id, key in enumerate(keys):
             mapping = self.mapping[key]
             threshold = ths[k_id]
 
             res = m_res['responses'][k_id]
-            ranks = []
             for h in res['hits']['hits']:
                 score = h.get('_score', 0.0) if h['_score'] else 0.0
                 score = self._get_field_op(mapping.type).process_score(mapping, score)
-                ranks.append((score, h['_id']))
+                if threshold is not None and score < threshold:
+                    continue
 
-            if threshold is not None:
-                ranks = [(score, _id) for score, _id in ranks if score >= threshold]
+                src = h['_source']
+                doc_id = src[self._ID]
+                id2src[doc_id] = src
+                id2score[doc_id] = score + id2score.get(doc_id, 0.0)
 
-            m_ranks[key] = ranks
+        idrank = [(doc_id, score) for doc_id, score in id2score.items()]
+        idrank = sorted(idrank, key=lambda x: x[1], reverse=True)[0:top_k]
+        docs = []
+        for doc_id, score in idrank:
+            docs.append({"_source": id2src[doc_id], 'score': score})
 
-        return m_ranks
+        return docs
 
-    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Tuple[str, float]]:
+    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Dict]:
         """
         :param match: a dictionary that contains match and filters
         :param ctx_filter: a SQL string None if not given
@@ -178,12 +212,11 @@ class EsIndex(EsBaseIndex):
             json_filter = None
 
         if match and len(match) > 0:
-            m_ranks = self._query(match, json_filter, top_k)
+            docs = self._query(match, json_filter, top_k)
         else:
-            m_ranks = self._empty_query(json_filter, top_k)
+            docs = self._empty_query(json_filter, top_k)
 
-        ranks = self._fuse_ranks(m_ranks, top_k)
-        return ranks
+        return docs
 
 
 if __name__ == "__main__":
@@ -252,6 +285,10 @@ if __name__ == "__main__":
                 'ts': ['a', 'b'],
                 'f_ts': ['f']
                 },
+           "int>3 AND flt < 3000 AND time>2010-01-01", 10)
+    print(x)
+
+    x = i.rank({},
            "int>3 AND flt < 3000 AND time>2010-01-01", 10)
     print(x)
 
