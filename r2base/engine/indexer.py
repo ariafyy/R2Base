@@ -34,10 +34,10 @@ class Indexer(EngineBase):
                  show_progress: bool = False):
         return self.get_index(index_id).add_docs(docs, batch_size, show_progress)
 
-    def read_docs(self, index_id: str, doc_ids: Union[int, List[int]]):
+    def read_docs(self, index_id: str, doc_ids: Union[str, List[str]]):
         return self.get_index(index_id).read_docs(doc_ids)
 
-    def delete_docs(self, index_id: str, doc_ids: Union[int, List[int]]):
+    def delete_docs(self, index_id: str, doc_ids: Union[str, List[str]]):
         return self.get_index(index_id).delete_docs(doc_ids)
 
     def update_docs(self, index_id: str,

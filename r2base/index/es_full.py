@@ -8,7 +8,6 @@ from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
 from r2base.index.field_ops.object import ObjectField
 from typing import List, Union, Dict, Optional, Tuple
-import json
 
 
 class EsIndex(EsBaseIndex):
