@@ -123,7 +123,7 @@ class Index(object):
 
     def add_docs(self, docs: Union[Dict, List[Dict]],
                  batch_size: int = 100,
-                 show_progress:bool = False) -> List[int]:
+                 show_progress:bool = False) -> List[str]:
         """
         Add docs to all sub indexes in batches
         :param docs: a single doc OR a list of docs (dict)
@@ -165,7 +165,7 @@ class Index(object):
     def update_docs(self, docs: Union[Dict, List[Dict]],
                     batch_size: int = 100,
                     show_progress: bool = False
-                    ) -> List[int]:
+                    ) -> List[str]:
         doc_ids = []
         for d in docs:
             if FT.ID not in d:

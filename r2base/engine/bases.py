@@ -1,7 +1,7 @@
 import os
 from r2base.config import EnvVar
 import logging
-from r2base.index.index_full import Index
+from r2base.index.index import Index
 
 
 class EngineBase(object):

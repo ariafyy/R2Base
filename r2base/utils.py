@@ -2,7 +2,6 @@ from typing import Sequence
 import uuid
 
 
-
 def chunks(l: Sequence, win_len: int, stride_len: int):
     s_id = 0
     e_id = min(len(l), win_len)
