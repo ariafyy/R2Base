@@ -55,11 +55,3 @@ class TextField(FieldOpBase):
                     "size": top_k
                 }
         return es_query
-
-    @classmethod
-    def hits2ranks(cls, mapping: TextMapping, res):
-        ranks = []
-        for h in res['hits']['hits']:
-            score = h.get('_score', 0.0) if h['_score'] else 0.0
-            ranks.append((score, int(h['_id'])))
-        return ranks

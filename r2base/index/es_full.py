@@ -6,6 +6,7 @@ from r2base.index.field_ops.text import TextField
 from r2base.index.field_ops.iv import InvertedField
 from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
+from r2base.index.field_ops.object import ObjectField
 from typing import List, Union, Dict, Optional, Tuple
 
 
@@ -24,23 +25,33 @@ class EsIndex(EsBaseIndex):
                 fields.add(field)
         return fields
 
+    def _get_field_op(self, f_type):
+        if f_type == FT.TEXT:
+            return TextField
+
+        elif f_type == FT.VECTOR:
+            return VectorField
+
+        elif f_type == FT.TERM_SCORE:
+            return InvertedField
+
+        elif f_type == FT.OBJECT:
+            return ObjectField
+
+        elif f_type in FT.FILTER_TYPES:
+            return FilterField
+
+        else:
+            raise Exception("Unknown field type {}".format(f_type))
+
+
     def create_index(self) -> None:
         params = {"timeout": '60s'}
         setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
-        properties = {}
+        properties = {'_oid': {'type': 'keyword'}}
 
         for field, mapping in self.mapping.items():
-            if mapping.type == FT.TEXT:
-                properties[field] = TextField.to_mapping(mapping)
-
-            elif mapping.type == FT.VECTOR:
-                properties[field] = VectorField.to_mapping(mapping)
-
-            elif mapping.type == FT.TERM_SCORE:
-                properties[field] = InvertedField.to_mapping(mapping)
-
-            elif mapping.type in FT.FILTER_TYPES:
-                properties[field] = FilterField.to_mapping(mapping)
+            properties[field] = self._get_field_op(mapping.type).to_mapping(mapping)
 
         config = {
             'mappings': {'properties': properties},
@@ -62,19 +73,9 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 mapping = self.mapping[field]
-                if mapping.type == FT.TEXT:
-                    body[field] = TextField.to_add_body(mapping, value)
+                body[field] = self._get_field_op(mapping.type).to_add_body(mapping, value)
 
-                elif mapping.type == FT.VECTOR:
-                    body[field] = VectorField.to_add_body(mapping, value)
-
-                elif mapping.type == FT.TERM_SCORE:
-                    body[field] = InvertedField.to_add_body(mapping, value)
-
-                elif mapping.type in FT.FILTER_TYPES:
-                    body[field] = FilterField.to_add_body(mapping, value)
-
-            body['_id'] = doc_id
+            body['_oid'] = doc_id
             body['_op_type'] = 'index'
             body['_index'] = self.index_id
             index_data.append(body)
@@ -138,17 +139,8 @@ class EsIndex(EsBaseIndex):
                 threshold = None
             ths.append(threshold)
 
-            body = None
-            if mapping.type == FT.TEXT:
-                body = TextField.to_query_body(field, mapping, value, top_k, json_filter)
-
-            elif mapping.type == FT.VECTOR:
-                body = VectorField.to_query_body(field, mapping, value, top_k, json_filter)
-
-            elif mapping.type == FT.TERM_SCORE:
-                body = InvertedField.to_query_body(field, mapping, value, top_k, json_filter)
-
-            if body is not None:
+            if mapping.type in FT.MATCH_TYPES:
+                body = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter)
                 keys.append(field)
                 es_qs.append({'index': self.index_id})
                 es_qs.append(body)
@@ -157,24 +149,23 @@ class EsIndex(EsBaseIndex):
         m_ranks = {}
         for k_id, key in enumerate(keys):
             mapping = self.mapping[key]
-            res = m_res['responses'][k_id]
-            if mapping.type == FT.TEXT:
-                m_ranks[key] = TextField.hits2ranks(mapping, res)
-
-            elif mapping.type == FT.VECTOR:
-                m_ranks[key] = VectorField.hits2ranks(mapping, res)
-
-            elif mapping.type == FT.TERM_SCORE:
-                m_ranks[key] = InvertedField.hits2ranks(mapping, res)
-
             threshold = ths[k_id]
+
+            res = m_res['responses'][k_id]
+            ranks = []
+            for h in res['hits']['hits']:
+                score = h.get('_score', 0.0) if h['_score'] else 0.0
+                score = self._get_field_op(mapping.type).process_score(mapping, score)
+                ranks.append((score, h['_id']))
+
             if threshold is not None:
-                temp = m_ranks[key]
-                m_ranks[key] = [(score, _id) for score, _id in temp if score >= threshold]
+                ranks = [(score, _id) for score, _id in ranks if score >= threshold]
+
+            m_ranks[key] = ranks
 
         return m_ranks
 
-    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Tuple[int, float]]:
+    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Tuple[str, float]]:
         """
         :param match: a dictionary that contains match and filters
         :param ctx_filter: a SQL string None if not given
@@ -208,10 +199,12 @@ if __name__ == "__main__":
         'kw': BasicMapping(type=FT.KEYWORD),
         'time': BasicMapping(type=FT.DATE),
         'int': BasicMapping(type=FT.INT),
-        'flt': BasicMapping(type=FT.FLOAT)
+        'flt': BasicMapping(type=FT.FLOAT),
+        'random_1': BasicMapping(type=FT.OBJECT),
+        'random_2': BasicMapping(type=FT.OBJECT)
     }
     i = EsIndex(root, idx, mapping)
-    """
+
     i.delete_index()
     i.create_index()
     doc1 = {
@@ -222,7 +215,9 @@ if __name__ == "__main__":
         'kw': 'city',
         'time': '2015-01-01',
         'int': 100,
-        'flt': 12.4
+        'flt': 12.4,
+        'random_1': 'beijing',
+        'random_2': [1, 2, '3']
     }
     doc2 = {
         'text': '我是北京人',
@@ -232,7 +227,8 @@ if __name__ == "__main__":
         'kw': 'captial',
         'time': '2018-01-01',
         'int': 10,
-        'flt': 2.4
+        'flt': 2.4,
+        'random_1': {123: 123},
     }
     doc3 = {
         'text': '我是杭州人',
@@ -242,14 +238,15 @@ if __name__ == "__main__":
         'kw': 'city',
         'time': '2016-01-01',
         'int': 1000,
-        'flt': 1200.4
+        'flt': 1200.4,
+        'random_2': {'ok': 23},
     }
 
     i.add(doc1, 1)
     i.add([doc2, doc3], [2, 3])
 
     time.sleep(2)
-    """
+
     x = i.rank({'text': '杭州',
                 'vector': [1.0, -0.4, 3.3, 0.2],
                 'ts': ['a', 'b'],

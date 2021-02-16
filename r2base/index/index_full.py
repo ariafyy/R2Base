@@ -29,7 +29,7 @@ class Index(object):
         self._rank_index = None
 
     def _reserved_fields(self):
-        return {'_id'}
+        return {'_id', '_oid'}
 
     def _validate_index_id(self, index_id):
         check = set(string.digits + string.ascii_letters + '_-s')
@@ -229,7 +229,6 @@ class Index(object):
         :return:
         """
         q_match = q.get('match', {})
-        match_args = q.get('match_args', {})
         q_filter = q.get('filter', None)
         q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
@@ -264,10 +263,8 @@ class Index(object):
                         d['_source'].pop(field, None)
         return docs
 
-
     def scroll_query(self, q: Dict):
         q_match = q.get('match', {})
-        match_args = q.get('match_args', {})
         q_filter = q.get('filter', None)
         top_k = q.get('size', 10)
         exclude = q.get('exclude', [])
@@ -285,6 +282,9 @@ class Index(object):
 
         if search_after:
             q_sort['search_after'] = search_after
+
+        ranks = self.rank_index.rank(q_match, q_filter, top_k)
+        sources = self.id_index.get([_id for _id, s in ranks])
 
         if len(q_match) > 0:
             n_job = max(1, min(5, len(q_match)))

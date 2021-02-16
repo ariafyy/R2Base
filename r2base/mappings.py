@@ -18,7 +18,7 @@ def parse_mapping(mapping: dict):
     :return:
     """
     basic_map: BasicMapping = BasicMapping.parse_obj(mapping)
-    if basic_map.type in FT.FILTER_TYPES or basic_map.type == FT.ID:
+    if basic_map.type in FT.FILTER_TYPES or basic_map.type == FT.ID or basic_map.type == FT.OBJECT:
         return basic_map
 
     if basic_map.type == FT.VECTOR:

@@ -11,6 +11,7 @@ class FieldType(object):
     META = "meta"
     DATE = "date"
     DATETIME = "datetime"
+    OBJECT = "object"
 
     FILTER_TYPES = {KEYWORD, FLOAT, INT, DATE, DATETIME}
     MATCH_TYPES = {TERM_SCORE, TEXT, VECTOR}

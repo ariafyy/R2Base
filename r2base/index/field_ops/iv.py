@@ -74,11 +74,7 @@ class InvertedField(FieldOpBase):
             raise Exception("Unknown term score mode={}".format(mapping.mode))
 
     @classmethod
-    def hits2ranks(cls, mapping: TermScoreMapping, res):
-        ranks = []
-        for h in res['hits']['hits']:
-            score = h.get('_score', 0.0) if h['_score'] else 0.0
-            if mapping.mode == 'int':
-                score /= InvertedField.ALPHA
-            ranks.append((score, int(h['_id'])))
-        return ranks
+    def process_score(cls, mapping: TermScoreMapping, score):
+        if mapping.mode == 'int':
+            score /= InvertedField.ALPHA
+        return score
