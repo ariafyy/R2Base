@@ -30,5 +30,5 @@ async def scroll_query(
     s_time = time.time()
     ranker: Ranker = request.app.state.ranker
     res, last_id = ranker.scroll_query(index_id, body.query)
-    resp = ScrollSearch(took=time.time() - s_time, ranks=res, reads=[], last_id=last_id)
+    resp = ScrollSearch(took=time.time() - s_time, docs=res, last_id=last_id)
     return resp

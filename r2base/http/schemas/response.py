@@ -10,8 +10,7 @@ class Search(BaseModel):
 
 class ScrollSearch(BaseModel):
     took: int
-    ranks: List = []
-    reads: List = []
+    docs: List = []
     last_id: Union[List, None]
 
 
