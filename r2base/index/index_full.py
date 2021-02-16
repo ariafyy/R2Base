@@ -77,7 +77,7 @@ class Index(object):
         """
         # check if mapping contain illegal elements
         if FT.ID in mappings.keys():
-            raise Exception("{} is reserved. Index creation aborted".format(key))
+            raise Exception("{} is reserved. Index creation aborted".format(FT.ID))
 
         self.logger.info("Creating index {}".format(self.index_id))
 

@@ -1,4 +1,4 @@
-from r2base.index.util_bases import FieldOpBase
+from r2base.index.index_bases import FieldOpBase
 from r2base.mappings import VectorMapping
 from typing import List, Optional, Dict
 

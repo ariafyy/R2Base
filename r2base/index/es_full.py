@@ -1,6 +1,6 @@
 from r2base import IndexType as IT
 from r2base import FieldType as FT
-from r2base.index.util_bases import EsBaseIndex
+from r2base.index.index_bases import EsBaseIndex
 from r2base.config import EnvVar
 from r2base.index.field_ops.text import TextField
 from r2base.index.field_ops.iv import InvertedField

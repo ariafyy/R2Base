@@ -1,4 +1,4 @@
-from r2base.index.util_bases import FieldOpBase
+from r2base.index.index_bases import FieldOpBase
 from r2base.mappings import TermScoreMapping
 from typing import Dict, List, Optional
 import logging

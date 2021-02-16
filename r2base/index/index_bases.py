@@ -1,11 +1,41 @@
-from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.utils import chunks
-from typing import List, Union
+from typing import List, Union, Tuple, Dict
 from r2base import FieldType as FT
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch import helpers as es_helpers
 import logging
+import os
+
+
+class IndexBase(object):
+    type: str
+    logger = logging.getLogger(__name__)
+
+    def __init__(self, root_dir: str, index_id: str, mapping):
+        self.root_dir = root_dir
+        self.index_id = index_id
+        self.mapping = mapping
+        self.work_dir = os.path.join(self.root_dir, self.index_id)
+        self._client = None
+
+    def size(self) -> int:
+        pass
+
+    def create_index(self, *args, **kwargs) -> None:
+        pass
+
+    def delete_index(self, *args, **kwargs) -> None:
+        pass
+
+    def add(self, *args, **kwargs) -> None:
+        pass
+
+    def delete(self, *args, **kwargs) -> None:
+        pass
+
+    def rank(self, *args, **kwargs) -> List[Tuple[float, int]]:
+        pass
 
 
 class EsBaseIndex(IndexBase):
@@ -42,15 +72,15 @@ class EsBaseIndex(IndexBase):
     def delete(self, doc_ids: Union[List[str], str]):
         if type(doc_ids) is not list:
             doc_ids = [doc_ids]
-        es_query = {'bool': {'should': [{'term': {FT.ID: _id for _id in doc_ids}}]}}
-        res = self.es.delete_by_query(index=self.index_id, body=es_query)
+        es_query = {'bool': {'should': [{'term': {FT.ID: _id}} for _id in doc_ids]}}
+        res = self.es.delete_by_query(index=self.index_id, body={'query': es_query, 'size': len(doc_ids)})
         return res
 
     def read(self, doc_ids: Union[List[str], str]):
         if type(doc_ids) is not list:
             doc_ids = [doc_ids]
-        es_query = {'bool': {'should': [{'term': {FT.ID: _id for _id in doc_ids}}]}}
-        res = self.es.search(index=self.index_id, body=es_query)
+        es_query = {'bool': {'should': [{'term': {FT.ID: _id}} for _id in doc_ids]}}
+        res = self.es.search(index=self.index_id, body={'query': es_query, 'size': len(doc_ids)})
         docs = []
         for h in res['hits']['hits']:
             docs.append(h['_source'])
@@ -72,7 +102,6 @@ class EsBaseIndex(IndexBase):
                 raise e
 
         return res
-
 
 
 class FieldOpBase(object):
