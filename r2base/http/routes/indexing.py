@@ -9,13 +9,13 @@ router = APIRouter()
 
 
 @router.get("/list", response_model=IndexList, name="Get a list of index names")
-async def post_predict(request: Request) -> IndexList:
+async def list_index(request: Request) -> IndexList:
     indexer: Indexer = request.app.state.indexer
     return IndexList(indexes=indexer.list())
 
 
 @router.post("/{index_id}", response_model=IndexWrite, name="Create Index", status_code=status.HTTP_201_CREATED)
-async def post_predict(
+async def make_index(
         request: Request,
         index_id: str,
         body: WriteIndexBody = None
@@ -26,7 +26,7 @@ async def post_predict(
 
 
 @router.delete("/{index_id}", response_model=IndexWrite, name="Delete Index")
-async def post_predict(
+async def delete_index(
         request: Request,
         index_id: str
 ) -> IndexWrite:
@@ -37,7 +37,7 @@ async def post_predict(
 
 
 @router.get("/{index_id}", response_model=IndexRead, name="Get Index Info")
-async def post_predict(
+async def get_index_info(
         request: Request,
         index_id: str
 ) -> IndexRead:
@@ -46,7 +46,7 @@ async def post_predict(
 
 
 @router.get("/{index_id}/mappings", response_model=MappingRead, name="Get Mapping")
-async def post_predict(
+async def get_mapping(
         request: Request,
         index_id: str
 ) -> MappingRead:
@@ -55,7 +55,7 @@ async def post_predict(
 
 
 @router.post("/{index_id}/docs", response_model=DocWrite, name="Add documents", status_code=status.HTTP_201_CREATED)
-async def post_predict(
+async def add_docs(
         request: Request,
         index_id: str,
         block_data: WriteDocBody = None
@@ -67,7 +67,7 @@ async def post_predict(
 
 
 @router.put("/{index_id}/docs", response_model=DocWrite, name="Update documents")
-async def post_predict(
+async def update_docs(
         request: Request,
         index_id: str,
         body: WriteDocBody = None
@@ -79,7 +79,7 @@ async def post_predict(
 
 
 @router.delete("/{index_id}/docs/{doc_ids}", response_model=DocWrite, name="Delete documents")
-async def post_predict(
+async def delete_docs(
         request: Request,
         index_id: str,
         doc_ids: str,
@@ -96,7 +96,7 @@ async def post_predict(
 
 
 @router.get("/{index_id}/docs/{doc_ids}", response_model=DocRead, name="Read documents")
-async def post_predict(
+async def read_docs(
         request: Request,
         index_id: str,
         doc_ids: str,

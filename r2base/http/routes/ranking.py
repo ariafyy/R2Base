@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.post("/{index_id}/query", response_model=Search, name="ranking query")
-async def post_predict(
+async def query(
         request: Request,
         index_id: str,
         body: SearchBody = None
@@ -22,7 +22,7 @@ async def post_predict(
 
 
 @router.post("/{index_id}/scroll_query", response_model=ScrollSearch, name="scroll query")
-async def post_scroll(
+async def scroll_query(
         request: Request,
         index_id: str,
         body: SearchBody = None
