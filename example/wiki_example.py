@@ -44,7 +44,8 @@ if __name__ == "__main__":
         'text': {'type': 'text',
                  'lang': 'en',
                  'index': 'bm25'
-                 }
+                 },
+        'seed': {'type': 'object'}
     }
     docs = []
     chunk_size = 100

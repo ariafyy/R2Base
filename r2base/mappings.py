@@ -57,7 +57,6 @@ class TextMapping(BasicMapping):
     q_processor: str = None
 
     def __init__(self, **data):
-        print(data)
         # initialize default values here for different index types
         if 'processor' not in data or data['processor'] == 'nothing':
             if data['lang'] == 'zh':

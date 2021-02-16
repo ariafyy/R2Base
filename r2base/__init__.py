@@ -1,7 +1,7 @@
 
 
 class FieldType(object):
-    ID = '_id'
+    ID = '_uid'
     KEYWORD = 'keyword'
     FLOAT = 'float'
     INT = 'integer'

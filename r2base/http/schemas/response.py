@@ -12,21 +12,17 @@ class ScrollSearch(BaseModel):
     took: int
     ranks: List = []
     reads: List = []
-    last_id: Union[int, None]
+    last_id: Union[List, None]
+
 
 class DocWrite(BaseModel):
     took: int
-    doc_ids: List[int]
+    doc_ids: List[str]
     action: str
 
 
 class DocRead(BaseModel):
     docs: Union[List, Dict, None]
-
-
-class ScrollRead(BaseModel):
-    docs: List
-    last_key: int
 
 
 class IndexWrite(BaseModel):

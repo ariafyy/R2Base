@@ -2,6 +2,7 @@ from r2base.index import IndexBase
 from r2base.config import EnvVar
 from r2base.utils import chunks
 from typing import List, Union
+from r2base import FieldType as FT
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch import helpers as es_helpers
 import logging
@@ -38,12 +39,22 @@ class EsBaseIndex(IndexBase):
         except Exception as e:
             self.logger.error(e)
 
-    def delete(self, doc_ids: Union[List[int], int]) -> None:
+    def delete(self, doc_ids: Union[List[str], str]):
         if type(doc_ids) is not list:
             doc_ids = [doc_ids]
+        es_query = {'bool': {'should': [{'term': {FT.ID: _id for _id in doc_ids}}]}}
+        res = self.es.delete_by_query(index=self.index_id, body=es_query)
+        return res
 
-        for doc_id in doc_ids:
-            self.es.delete(self.index_id, doc_id)
+    def read(self, doc_ids: Union[List[str], str]):
+        if type(doc_ids) is not list:
+            doc_ids = [doc_ids]
+        es_query = {'bool': {'should': [{'term': {FT.ID: _id for _id in doc_ids}}]}}
+        res = self.es.search(index=self.index_id, body=es_query)
+        docs = []
+        for h in res['hits']['hits']:
+            docs.append(h['_source'])
+        return docs
 
     def size(self) -> int:
         if not self.es.indices.exists(index=self.index_id):

@@ -8,7 +8,7 @@ import time
 router = APIRouter()
 
 
-@router.post("/{index_id}/query", response_model=Search, name="predict")
+@router.post("/{index_id}/query", response_model=Search, name="ranking query")
 async def post_predict(
         request: Request,
         index_id: str,
@@ -21,12 +21,12 @@ async def post_predict(
     return resp
 
 
-@router.post("/{index_id}/scroll_query", response_model=ScrollSearch, name="predict")
+@router.post("/{index_id}/scroll_query", response_model=ScrollSearch, name="scroll query")
 async def post_scroll(
         request: Request,
         index_id: str,
         body: SearchBody = None
-) -> Search:
+) -> ScrollSearch:
     s_time = time.time()
     ranker: Ranker = request.app.state.ranker
     res, last_id = ranker.scroll_query(index_id, body.query)

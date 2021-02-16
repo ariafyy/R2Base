@@ -8,11 +8,11 @@ from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
 from r2base.index.field_ops.object import ObjectField
 from typing import List, Union, Dict, Optional, Tuple
+import json
 
 
 class EsIndex(EsBaseIndex):
     type = IT.RANK
-    _ID = "_uid"
 
     def __init__(self, root_dir: str, index_id: str, mapping):
         super().__init__(root_dir, index_id, mapping)
@@ -41,8 +41,8 @@ class EsIndex(EsBaseIndex):
     @property
     def default_src(self):
         if self._default_src is None:
-            temp = [self._ID]
-            temp_list = FT.FILTER_TYPES
+            temp = [FT.ID]
+            temp_list = {x for x in FT.FILTER_TYPES}
             temp_list.add(FT.TEXT)
             temp_list.add(FT.OBJECT)
 
@@ -57,9 +57,12 @@ class EsIndex(EsBaseIndex):
     def create_index(self) -> None:
         params = {"timeout": '60s'}
         setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
-        properties = {self._ID: {'type': 'keyword'}}
+        properties = {FT.ID: {'type': 'keyword'}}
 
         for field, mapping in self.mapping.items():
+            if mapping.type in {FT.META, FT.ID}:
+                continue
+
             properties[field] = self._get_field_op(mapping.type).to_mapping(mapping)
 
         config = {
@@ -79,9 +82,12 @@ class EsIndex(EsBaseIndex):
             body = {}
             for field, value in doc.items():
                 mapping = self.mapping[field]
+                if mapping.type in {FT.META, FT.ID}:
+                    continue
+
                 body[field] = self._get_field_op(mapping.type).to_add_body(mapping, value)
 
-            body[self._ID] = str(doc_id)
+            body[FT.ID] = str(doc_id)
             body['_op_type'] = 'index'
             body['_index'] = self.index_id
             index_data.append(body)
@@ -108,11 +114,17 @@ class EsIndex(EsBaseIndex):
         return ranks
 
     def _get_src_filters(self, includes: Optional[List], excludes: Optional[List]):
-        if includes is not None and self._ID not in includes:
-            includes = includes + [self._ID]
+        if type(includes) is list and len(includes) == 0:
+            includes = None
 
-        if excludes is not None and self._ID in excludes:
-            excludes = [e for e in excludes if e != self._ID]
+        if type(excludes) is list and len(excludes) == 0:
+            excludes = None
+
+        if includes is not None and FT.ID not in includes:
+            includes = includes + [FT.ID]
+
+        if excludes is not None and FT.ID in excludes:
+            excludes = [e for e in excludes if e != FT.ID]
 
         if includes is None and excludes is None:
             return self.default_src
@@ -122,7 +134,6 @@ class EsIndex(EsBaseIndex):
             return {'includes': includes}
         else:
             return {'includes': includes, 'excludes': excludes}
-
 
     def _empty_query(self, json_filter, top_k, includes=None, excludes=None):
         src_filter = self._get_src_filters(includes, excludes)
@@ -187,7 +198,7 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 src = h['_source']
-                doc_id = src[self._ID]
+                doc_id = src[FT.ID]
                 id2src[doc_id] = src
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
 
@@ -199,29 +210,68 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int) -> List[Dict]:
-        """
-        :param match: a dictionary that contains match and filters
-        :param ctx_filter: a SQL string None if not given
-        :param top_k: return top_k
-        :return:
-        """
+    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int,
+             includes: Optional[List], excludes: Optional[List]) -> List[Dict]:
+
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
         else:
             json_filter = None
 
         if match and len(match) > 0:
-            docs = self._query(match, json_filter, top_k)
+            docs = self._query(match, json_filter, top_k, includes, excludes)
         else:
-            docs = self._empty_query(json_filter, top_k)
+            docs = self._empty_query(json_filter, top_k, includes, excludes)
 
         return docs
+
+    def scroll(self, match: Optional[Dict], sql_filter: Optional[str], batch_size: int,
+               includes: Optional[List] = None, excludes: Optional[List] = None,
+               sort: Optional[List] = None, search_after: Optional[List] = None):
+
+        if type(match) is Dict and len(match) > 1:
+            raise Exception("Scroll only supports 1 match field")
+
+        # build source
+        src_filter = self._get_src_filters(includes, excludes)
+
+        if not sort:
+            sort = {"_uid": "asc"}
+
+        if match and len(match) > 0:
+            adv_query = list(match.values())[0]
+        else:
+            adv_query = {"match_all": {}}
+
+        es_query = {
+            "_source": src_filter,
+            "size": batch_size,
+            'sort': sort
+        }
+
+        if sql_filter is not None and sql_filter:
+            json_filter = self._sql2json(sql_filter)
+            es_query['query'] = {"bool": {"must": adv_query, "filter": json_filter}}
+        else:
+            es_query['query'] = adv_query
+
+        if search_after:
+            es_query['search_after'] = search_after
+
+        res = self.es.search(body=es_query, index=self.index_id)
+        docs = []
+        last_id = None
+        for h in res['hits']['hits']:
+            docs.append(h['_source'])
+            last_id = h['sort']
+
+        return docs, last_id
 
 
 if __name__ == "__main__":
     import time
-    from r2base.mappings import VectorMapping,TextMapping,TermScoreMapping, BasicMapping
+    from r2base.mappings import VectorMapping, TextMapping, TermScoreMapping, BasicMapping
+
     root = '.'
     idx = 'full_es_test'
     mapping = {
@@ -237,7 +287,7 @@ if __name__ == "__main__":
         'random_2': BasicMapping(type=FT.OBJECT)
     }
     i = EsIndex(root, idx, mapping)
-
+    """
     i.delete_index()
     i.create_index()
     doc1 = {
@@ -291,4 +341,8 @@ if __name__ == "__main__":
     x = i.rank({},
            "int>3 AND flt < 3000 AND time>2010-01-01", 10)
     print(x)
-
+    """
+    last_id = None
+    for _ in range(4):
+        x, last_id = i.scroll({}, None, 2, sort=None, search_after=last_id)
+        print(x, last_id)

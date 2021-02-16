@@ -2,7 +2,7 @@ from r2base.engine.indexer import Indexer
 from r2base.engine.ranker import Ranker
 import json
 import numpy as np
-
+import time
 
 def wiki2doc(l):
     temp = json.loads(l)
@@ -23,6 +23,7 @@ if __name__ == "__main__":
                  'lang': 'zh',
                  'index': 'bm25'
                  },
+        'seed': {'type': 'object'},
         '_meta': {"type": "meta",
                   "value": {"ok": {"encoder_id": "okok",
                                    "score": "123"}}}
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     chunk_size = 10
     index = 'wiki-zh'
     indexer.delete_index(index)
+    time.sleep(2)
     indexer.create_index(index, mapping)
     cnt = 0
     with open(path, 'r', encoding='utf8') as f:

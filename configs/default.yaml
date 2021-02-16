@@ -2,8 +2,6 @@ IS_DEBUG: false
 INDEX_DIR: "_index"
 MODEL_DIR: "resources"
 API_PREFIX: "/r2base"
-IV_BACKEND: "es"
-ANN_BACKEND: "es"
 ES_URL : 'http://127.0.0.1:9200'
 ES_SHARD_NUM: 3
 ES_REPLICA_NUM: 1

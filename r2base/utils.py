@@ -17,5 +17,5 @@ def chunks(l: Sequence, win_len: int, stride_len: int):
         e_id = min(s_id + win_len, len(l))
 
 
-def get_uid() -> int:
-    return int(uuid.uuid1().int >> 65)
+def get_uid() -> str:
+    return str(uuid.uuid1().int >> 65)
