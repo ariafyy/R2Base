@@ -23,7 +23,8 @@ class TextField(FieldOpBase):
         return pipe.run(value, **kwargs)
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: TextMapping, query: str, top_k: int, json_filter: Optional[Dict]):
+    def to_query_body(cls, key: str, mapping: TextMapping, query: str, top_k: int,
+                      json_filter: Optional[Dict]):
         pipe = Pipeline(mapping.q_processor)
         kwargs = {'lang': mapping.lang, 'is_query': True}
 

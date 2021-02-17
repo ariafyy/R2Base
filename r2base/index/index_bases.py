@@ -65,7 +65,7 @@ class EsBaseIndex(IndexBase):
 
     def _sql2json(self, sql_filter: str):
         sql_filter = 'SELECT * FROM "{}" WHERE {}'.format(self.index_id, sql_filter)
-        res = self.es.sql.translate({'query': sql_filter})
+        res = self.es.sql.translate(body={'query': sql_filter})
         return res['query']
 
     def delete_index(self) -> None:

@@ -97,17 +97,6 @@ class EsIndex(EsBaseIndex):
         else:
             self.logger.warn("Skip add since data is empty.")
 
-    def _fuse_ranks(self, m_ranks, top_k: int):
-        # combine score from different fields
-        fuse_res = dict()
-        for key, ranks in m_ranks.items():
-            for score, doc_id in ranks:
-                fuse_res[doc_id] = score + fuse_res.get(doc_id, 0.0)
-
-        ranks = [(k, v) for k, v in fuse_res.items()]
-        ranks = sorted(ranks, key=lambda x: x[1], reverse=True)[0:top_k]
-        return ranks
-
     def _get_src_filters(self, includes: Optional[List], excludes: Optional[List]):
         if type(includes) is list and len(includes) == 0:
             includes = None
@@ -115,12 +104,14 @@ class EsIndex(EsBaseIndex):
         if type(excludes) is list and len(excludes) == 0:
             excludes = None
 
+        # make sure ID is in the source
         if includes is not None and FT.ID not in includes:
             includes = includes + [FT.ID]
 
         if excludes is not None and FT.ID in excludes:
             excludes = [e for e in excludes if e != FT.ID]
 
+        # set up sources
         if includes is None and excludes is None:
             return self.default_src
         elif includes is None and excludes is not None:

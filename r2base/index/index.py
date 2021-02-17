@@ -166,6 +166,8 @@ class Index(object):
                     batch_size: int = 100,
                     show_progress: bool = False
                     ) -> List[str]:
+        if type(docs) is dict:
+            docs = [docs]
         doc_ids = []
         for d in docs:
             if FT.ID not in d:

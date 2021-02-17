@@ -37,7 +37,8 @@ class InvertedField(FieldOpBase):
             raise Exception("Unknown term score mode={}".format(mapping.mode))
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: TermScoreMapping, tokens: List[str], top_k: int, json_filter: Optional[Dict]):
+    def to_query_body(cls, key: str, mapping: TermScoreMapping, tokens: List[str], top_k: int,
+                      json_filter: Optional[Dict]):
         if mapping.mode == 'float':
             main_query = [{'rank_feature': {'field': '{}.{}'.format(key, t),
                                             "log": {"scaling_factor": 1.0}
