@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from starlette.requests import Request
 from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
 from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList
@@ -8,7 +8,7 @@ import time
 router = APIRouter()
 
 
-@router.get("/list", response_model=IndexList, name="Get a list of index names")
+@router.get("/list", response_model=IndexList, name="Get Index List")
 async def list_index(request: Request) -> IndexList:
     indexer: Indexer = request.app.state.indexer
     return IndexList(indexes=indexer.list())
@@ -25,7 +25,7 @@ async def make_index(
     return IndexWrite(index=index_id, action='created')
 
 
-@router.delete("/{index_id}", response_model=IndexWrite, name="Delete Index")
+@router.delete("/{index_id}", response_model=IndexWrite, name="Delete index")
 async def delete_index(
         request: Request,
         index_id: str
