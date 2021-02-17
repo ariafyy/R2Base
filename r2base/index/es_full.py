@@ -97,11 +97,6 @@ class EsIndex(EsBaseIndex):
         else:
             self.logger.warn("Skip add since data is empty.")
 
-    def _sql2json(self, sql_filter: str):
-        sql_filter = 'SELECT * FROM "{}" WHERE {}'.format(self.index_id, sql_filter)
-        res = self.es.sql.translate({'query': sql_filter})
-        return res['query']
-
     def _fuse_ranks(self, m_ranks, top_k: int):
         # combine score from different fields
         fuse_res = dict()

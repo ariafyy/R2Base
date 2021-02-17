@@ -224,3 +224,7 @@ class Index(object):
                                                sort_index, search_after)
 
         return docs, last_id
+
+    def delete_query(self, q: Dict):
+        q_filter = q['filter']
+        return self.rank_index.delete_by_query(q_filter)

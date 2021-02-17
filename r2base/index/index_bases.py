@@ -63,6 +63,11 @@ class EsBaseIndex(IndexBase):
         else:
             self.logger.info("Index {} is created".format(index_id))
 
+    def _sql2json(self, sql_filter: str):
+        sql_filter = 'SELECT * FROM "{}" WHERE {}'.format(self.index_id, sql_filter)
+        res = self.es.sql.translate({'query': sql_filter})
+        return res['query']
+
     def delete_index(self) -> None:
         try:
             return self.es.indices.delete(index=self.index_id)
@@ -74,6 +79,19 @@ class EsBaseIndex(IndexBase):
             doc_ids = [doc_ids]
         es_query = {'bool': {'should': [{'term': {FT.ID: _id}} for _id in doc_ids]}}
         res = self.es.delete_by_query(index=self.index_id, body={'query': es_query, 'size': len(doc_ids)})
+        return res
+
+    def delete_by_query(self, sql_filter: str):
+        if sql_filter is None:
+            raise Exception("Delete by query does not accept None filter")
+        sql_filter = sql_filter.strip()
+
+        if sql_filter == '*':
+            json_filter = {'match_all': {}}
+        else:
+            json_filter = self._sql2json(sql_filter)
+
+        res = self.es.delete_by_query(index=self.index_id, body={'query': json_filter})
         return res
 
     def read(self, doc_ids: Union[List[str], str]):
