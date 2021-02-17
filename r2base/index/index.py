@@ -108,6 +108,7 @@ class Index(object):
 
         # first delete each sub-index
         self.rank_index.delete_index()
+        self._rank_index = None
 
         # remove the whole folder
         try:
