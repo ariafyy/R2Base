@@ -9,6 +9,13 @@ class TextField(FieldOpBase):
     logger = logging.getLogger(__name__)
 
     @classmethod
+    def process_value(cls, mapping: TextMapping, query: str, is_query: bool):
+        kwargs = {'lang': mapping.lang, 'is_query': is_query}
+        pipe = Pipeline(mapping.q_processor)
+        value = pipe.run(query, **kwargs)
+        return value
+
+    @classmethod
     def to_mapping(cls, mapping: TextMapping):
         if 'tokenize' in mapping.processor:
             cls.logger.info("Detected customized tokenizer. Using cutter_analyzer")
@@ -25,7 +32,6 @@ class TextField(FieldOpBase):
     @classmethod
     def to_query_body(cls, key: str, mapping: TextMapping, query: str, top_k: int,
                       json_filter: Optional[Dict]):
-        pipe = Pipeline(mapping.q_processor)
         kwargs = {'lang': mapping.lang, 'is_query': True}
 
         if type(query) is dict:
@@ -42,6 +48,7 @@ class TextField(FieldOpBase):
                     "size": top_k
                 }
         else:
+            pipe = Pipeline(mapping.q_processor)
             value = pipe.run(query, **kwargs)
             if json_filter is None:
                 es_query = {

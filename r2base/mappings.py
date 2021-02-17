@@ -51,7 +51,7 @@ class TermScoreMapping(BasicMapping):
 
 class TextMapping(BasicMapping):
     lang: str
-    index: str
+    index: str = 'bm25'
     index_mapping: Dict = dict()
     processor: str = None
     q_processor: str = None
@@ -63,6 +63,9 @@ class TextMapping(BasicMapping):
                 data['processor'] = 'nlp_tokenize'
             else:
                 data['processor'] = 'nothing'
+
+        if 'index' not in data:
+            data['index'] = 'bm25'
 
         if 'q_processor' not in data:
             data['q_processor'] = data.get('processor')

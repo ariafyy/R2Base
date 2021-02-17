@@ -22,7 +22,7 @@ class EnvVar(object):
     ES_SETTING['index']['number_of_shards'] = ES_SHARD_NUM
     ES_SETTING['index']['number_of_replicas'] = ES_REPLICA_NUM
 
-    MAX_NUM_INDEX = int(os.environ.get('MAX_NUM_INDEX', 100))
+    MAX_NUM_INDEX = int(os.environ.get('MAX_NUM_INDEX', 1000))
     INDEX_BATCH_SIZE = int(os.environ.get('INDEX_BATCH_SIZE', 100))
 
     @classmethod

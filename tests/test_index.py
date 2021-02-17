@@ -1,6 +1,5 @@
-from r2base.index.es_full import EsIndex
 from r2base.index.index import Index
-from r2base.mappings import BasicMapping, VectorMapping, TextMapping
+from r2base.mappings import BasicMapping
 import pytest
 import time
 
@@ -16,6 +15,8 @@ def test_basic_crud():
     i = Index(WORK_DIR, 'test_crud_index')
     i.delete_index()
     i.create_index(mapping)
+
+    # get mapping
     dump_mapping = i.get_mappings()
     for k in ['f1', 'f2', 'f3', 'f4', '_uid']:
         assert k in dump_mapping
@@ -31,7 +32,7 @@ def test_basic_crud():
             ]
     # add docs
     doc_ids = i.add_docs(docs, batch_size=2)
-    time.sleep(1)
+    time.sleep(2)
     assert doc_ids[3] == 'ddeeff'
     assert doc_ids[4] == 'aabbcc'
     assert i.size() == 5

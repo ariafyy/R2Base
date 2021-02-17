@@ -211,6 +211,8 @@ class Index(object):
 
     def scroll_query(self, q: Dict):
         q_match = q.get('match', {})
+        adv_match = q.get('adv_match', None)
+
         q_filter = q.get('filter', None)
         batch_size = q.get('size', 10)
         exclude = q.get('exclude', None)
@@ -222,8 +224,9 @@ class Index(object):
             return [], None
 
         docs, last_id = self.rank_index.scroll(q_match, q_filter, batch_size,
-                                               include, exclude,
-                                               sort_index, search_after)
+                                               adv_match=adv_match,
+                                               includes=include, excludes=exclude,
+                                               sort=sort_index, search_after=search_after)
 
         return docs, last_id
 

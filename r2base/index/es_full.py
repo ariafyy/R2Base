@@ -212,11 +212,11 @@ class EsIndex(EsBaseIndex):
         return docs
 
     def scroll(self, match: Optional[Dict], sql_filter: Optional[str], batch_size: int,
-               includes: Optional[List] = None, excludes: Optional[List] = None,
-               sort: Optional[List] = None, search_after: Optional[List] = None):
-
-        if type(match) is Dict and len(match) > 1:
-            raise Exception("Scroll only supports 1 match field")
+               adv_match: Optional[Dict]=None,
+               includes: Optional[List] = None,
+               excludes: Optional[List] = None,
+               sort: Optional[List] = None,
+               search_after: Optional[List] = None):
 
         # build source
         src_filter = self._get_src_filters(includes, excludes)
@@ -224,10 +224,21 @@ class EsIndex(EsBaseIndex):
         if not sort:
             sort = {"_uid": "asc"}
 
-        if match and len(match) > 0:
-            adv_query = list(match.values())[0]
-        else:
-            adv_query = {"match_all": {}}
+        query = None
+        if adv_match is not None and len(adv_match) > 0:
+            query = adv_match
+        elif match is not None:
+            temp = []
+            for key, value in match.items():
+                mapping = self.mapping[key]
+                if mapping.type == FT.TEXT and type(value) is str:
+                    p_value = self._get_field_op(mapping.type).process_value(mapping, value, is_query=True)
+                    temp.append({'match': {key: p_value}})
+            if len(temp) > 0:
+                query = {'bool': {'should': temp}}
+
+        if query is None:
+            query = {"match_all": {}}
 
         es_query = {
             "_source": src_filter,
@@ -237,9 +248,9 @@ class EsIndex(EsBaseIndex):
 
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
-            es_query['query'] = {"bool": {"must": adv_query, "filter": json_filter}}
+            es_query['query'] = {"bool": {"must": query, "filter": json_filter}}
         else:
-            es_query['query'] = adv_query
+            es_query['query'] = query
 
         if search_after:
             es_query['search_after'] = search_after
