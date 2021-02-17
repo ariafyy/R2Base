@@ -5,6 +5,26 @@ import time
 
 WORK_DIR = "."
 
+def test_empty_match():
+    c = EsIndex(WORK_DIR, 'test_empty_match',
+                    {'f1': BasicMapping(type='keyword'),
+                     'f2': BasicMapping(type='integer'),
+                     'f3': BasicMapping(type='float'),
+                     "f4": BasicMapping(type='date'),
+                     "f5": BasicMapping(type='datetime')})
+
+    c.delete_index()
+    c.create_index()
+    c.add({'f1': "haha", "f2": 10, "f4": '2019-06-28'}, '1')
+    c.add({'f1': "lala", "f3": 10.3, "f5": '2015-01-01T12:10:30Z'}, '2')
+    c.add({'f2': 12, "f3": 3.3}, '3')
+    c.add([{'f2': 0, "f3": 5.3}, {'f2': 22, "f3": 1.1}], ['4', '5'])
+    time.sleep(1)
+    assert len(c.rank(None, None, 2)) == 2
+    assert len(c.rank(None, None, 3)) == 3
+    assert len(c.rank(None, None, 4)) == 4
+    assert len(c.rank(None, None, 10)) == 5
+    c.delete_index()
 
 def test_filter_index():
     c = EsIndex(WORK_DIR, 'test_filter_index',
@@ -83,7 +103,7 @@ def test_vector():
     index.add([{'f1': [3, -2, 3], 'f2': [1, -2, -3]},
                {'f1': [-1, 2, 3], 'f2': [-1, -2, 3]}],
               ['3', '4'])
-    time.sleep(2)
+    time.sleep(3)
     assert index.size() == 4
     assert index.rank({'f1': [1, 2, 3]}, None, 10)[0]['score'] == pytest.approx(1.0)
     assert index.rank({'f1': [2, 4, 5], 'f2': [-1, -2, -3]}, None, 10)[0]['score'] == pytest.approx(2.0)
@@ -116,7 +136,7 @@ def test_term_score():
     assert i.size() == 4
     docs = i.rank({'f1': ['b']}, None, 10)
     assert len(docs) == 3
-    assert docs[0][0] == pytest.approx(2.0, rel=0.1)
+    assert docs[0]['score'] == pytest.approx(2.0, rel=0.1)
 
     # query with threshold
     docs = i.rank({'f1': {'value': ['b'], 'threshold': 3.0}}, None, 10)
@@ -126,8 +146,8 @@ def test_term_score():
     time.sleep(1)
     assert i.size() == 3
     docs = i.rank({'f2': ['a', 'c']}, None, 10)
-    assert len(docs) == 1
-    assert docs[0][0] == pytest.approx(1.0, rel=0.1)
+    assert len(docs) == 2
+    assert docs[0]['score'] == pytest.approx(10.0, rel=0.1)
     i.delete_index()
 
 
