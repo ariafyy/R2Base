@@ -47,3 +47,8 @@ class VectorField(FieldOpBase):
             }
 
         return query
+
+    @classmethod
+    def process_score(cls, mapping: VectorMapping, score):
+        score = score/2.0 # range is from 0 to 2. We normalize to 0 to 1
+        return score

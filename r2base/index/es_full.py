@@ -71,11 +71,12 @@ class EsIndex(EsBaseIndex):
 
         self._make_index(self.index_id, config, params)
 
-    def add(self, data: Union[List[Dict], Dict], doc_ids) -> None:
+    def add(self, data: Union[List[Dict], Dict], doc_ids: Union[List[str], str]) -> None:
         if type(data) is dict:
             data = [data]
             doc_ids = [doc_ids]
 
+        assert len(doc_ids) == len(data)
         index_data = []
         for doc, doc_id in zip(data, doc_ids):
             body = {}
@@ -168,7 +169,7 @@ class EsIndex(EsBaseIndex):
             mapping = self.mapping[field]
 
             if type(value) is dict:
-                threshold = value.get('threshold', 0.0)
+                threshold = value.get('threshold', None)
                 value = value['value']
             else:
                 threshold = None
@@ -209,8 +210,8 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def rank(self, match: Dict, sql_filter: Optional[str], top_k: int,
-             includes: Optional[List], excludes: Optional[List]) -> List[Dict]:
+    def rank(self, match: Optional[Dict], sql_filter: Optional[str], top_k: int,
+             includes: Optional[List]=None, excludes: Optional[List]=None) -> List[Dict]:
 
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
