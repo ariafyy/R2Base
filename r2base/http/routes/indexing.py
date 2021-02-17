@@ -90,8 +90,8 @@ async def delete_docs(
         doc_ids = doc_ids.split(',')
     else:
         doc_ids = [doc_ids]
-    indexer.delete_docs(index_id, doc_ids)
-    resp = DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='deleted')
+    res = indexer.delete_docs(index_id, doc_ids)
+    resp = DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='deleted', msg=res)
     return resp
 
 

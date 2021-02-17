@@ -74,7 +74,7 @@ class EsBaseIndex(IndexBase):
         except Exception as e:
             self.logger.error(e)
 
-    def delete(self, doc_ids: Union[List[str], str]):
+    def delete(self, doc_ids: Union[List[str], str]) -> Dict:
         if type(doc_ids) is not list:
             doc_ids = [doc_ids]
         es_query = {'bool': {'should': [{'term': {FT.ID: _id}} for _id in doc_ids]}}

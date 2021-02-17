@@ -33,6 +33,7 @@ async def scroll_query(
     resp = ScrollSearch(took=time.time() - s_time, docs=res, last_id=last_id)
     return resp
 
+
 @router.post("/{index_id}/delete_query", response_model=DocQueryWrite, name="delete query")
 async def delete_query(
         request: Request,
@@ -42,7 +43,7 @@ async def delete_query(
     s_time = time.time()
     ranker: Ranker = request.app.state.ranker
     res = ranker.delete_query(index_id, body.query)
-    resp = DocQueryWrite(took=time.time() - s_time, body=res, action='deleted')
+    resp = DocQueryWrite(took=time.time() - s_time, action='deleted', msg=res)
     return resp
 
 

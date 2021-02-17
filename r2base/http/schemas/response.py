@@ -18,12 +18,14 @@ class DocWrite(BaseModel):
     took: int
     doc_ids: List[str]
     action: str
+    msg: Any=None
 
 
 class DocQueryWrite(BaseModel):
     took : int
-    body: Any
     action: str
+    msg: Any
+
 
 class DocRead(BaseModel):
     docs: Union[List, Dict, None]

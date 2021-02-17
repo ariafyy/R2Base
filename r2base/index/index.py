@@ -152,7 +152,7 @@ class Index(object):
 
         return ids
 
-    def delete_docs(self, doc_ids: Union[str, List[str]]):
+    def delete_docs(self, doc_ids: Union[str, List[str]]) -> Dict:
         # delete the doc from ID index, Filter Index and Every Rank index.
         return self.rank_index.delete(doc_ids)
 
