@@ -118,6 +118,8 @@ class Index(object):
             self.logger.info(e)
 
     def get_mappings(self) -> Dict:
+        # force to reload
+        self._mappings = None
         return {k: v.dict() for k, v in self.mappings.items()}
 
     def size(self) -> int:

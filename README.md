@@ -26,7 +26,6 @@ Or you can use docker-compose:
 ### Build Index
 #### Support types
 - datetime
-- date
 - int
 - float
 - text
