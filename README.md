@@ -1,6 +1,4 @@
-# R2Base: AI search engine
-
-### What is R2Base (Rank & Reducing Engine)?
+# R2Base (Ranking & Reducing Engine)
 R2Base enables one to easily rank and reduce (dimension reduction and clustering) of high-dimensional dense/sparse vectors.
 
 
