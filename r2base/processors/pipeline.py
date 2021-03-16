@@ -47,7 +47,7 @@ class ReducePipeline(object):
             for op_id, op in enumerate(pack):
                 kwargs = op.get('kwargs', {})
                 p = processor_map[op['method']]
-                output_data = p.run(input_data, **kwargs)
+                output_data, model_idx = p.run(input_data, **kwargs)
                 input_data = output_data
 
             for idx, d in enumerate(data):
@@ -55,6 +55,7 @@ class ReducePipeline(object):
                     d['_reduce'] = {}
                 if idx in valid_id_map:
                     d['_reduce'][dest_f] = output_data[valid_id_map[idx]].tolist()
+                d['_reduce']['model_id'] = model_idx
 
         return data
 

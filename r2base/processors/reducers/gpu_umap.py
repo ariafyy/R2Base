@@ -3,10 +3,19 @@ from r2base.processors.bases import ProcessorBase
 import numpy as np
 from cuml.neighbors import NearestNeighbors
 from cuml.manifold import UMAP
-
+import pickle
+import redis
+import uuid
+from r2base.config import EnvVar
 
 class GpuUMAPReducer(ProcessorBase):
     logger = logging.getLogger(__name__)
+
+    def store_model(self, model):
+        client = redis.Redis.from_url(EnvVar.Redis_URL)
+        model_idx = str(uuid.uuid4())
+        client.set(model_idx, pickle.dumps(model), ex=3600)
+        return model_idx
 
     def run(self, embeddings: np.ndarray,
             n_neighbors: int = 10,
@@ -39,10 +48,11 @@ class GpuUMAPReducer(ProcessorBase):
                           min_dist=umap_min_dist,
                           # metric=umap_metric,
                           random_state=random_seed
-                          )
-        umap_embeddings = umap_model.fit_transform(embeddings, knn_graph=knn_graph)
+                          ).fit(embeddings, knn_graph=knn_graph)
+        umap_embeddings = umap_model.transform(embeddings)
+        model_idx = self.store_model(umap_model)
         self.logger.info("Reduced dimensionality with UMAP")
-        return umap_embeddings
+        return umap_embeddings, model_idx
 
 
 if __name__ == "__main__":
