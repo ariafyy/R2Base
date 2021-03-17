@@ -1,7 +1,7 @@
-# R2Base: AI search engine
+# R2Base: Vector Engine
 
-### What is R2Base (Rank & Reading Base)?
-R2Base is a document store with semantic search and machine reading
+### What is R2Base (Rank & Reducing Base)?
+R2Base is a vector database for ranking, reducing millions of dense (sparse) vectors.
 
 ### Examples
 Checkout
