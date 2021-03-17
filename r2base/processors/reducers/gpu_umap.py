@@ -12,9 +12,12 @@ class GpuUMAPReducer(ProcessorBase):
     logger = logging.getLogger(__name__)
 
     def store_model(self, model):
-        client = redis.Redis.from_url(EnvVar.Redis_URL)
-        model_idx = str(uuid.uuid4())
-        client.set(model_idx, pickle.dumps(model), ex=3600)
+        try:
+            client = redis.Redis.from_url(EnvVar.Redis_URL)
+            model_idx = str(uuid.uuid4())
+            client.set(model_idx, pickle.dumps(model), ex=3600)
+        except:
+            model_idx = None
         return model_idx
 
     def run(self, embeddings: np.ndarray,
@@ -23,7 +26,8 @@ class GpuUMAPReducer(ProcessorBase):
             n_components: int = 3,
             umap_metric: str = 'cosine',
             random_seed: int = 42,
-            l2_norm: bool = False) -> np.ndarray:
+            l2_norm: bool = False,
+            save_model: bool = False) -> np.ndarray:
         """ Reduce dimensionality of embeddings using UMAP and train a UMAP model
 
         Parameters
@@ -50,7 +54,10 @@ class GpuUMAPReducer(ProcessorBase):
                           random_state=random_seed
                           ).fit(embeddings, knn_graph=knn_graph)
         umap_embeddings = umap_model.transform(embeddings)
-        model_idx = self.store_model(umap_model)
+        if save_model:
+            model_idx = self.store_model(umap_model)
+        else:
+            model_idx = None
         self.logger.info("Reduced dimensionality with UMAP")
         return umap_embeddings, model_idx
 
