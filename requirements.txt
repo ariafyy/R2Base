@@ -11,3 +11,4 @@ scikit-learn>=0.23
 tqdm >= 4.46.0
 redis==3.5.
 numba==0.51.2
+soco-tokenizer==1.0

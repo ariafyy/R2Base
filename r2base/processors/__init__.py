@@ -1,9 +1,7 @@
-# from r2base.processors.crafters.tf_tokenizer import TransformerTokenizer
-# from r2base.processors.encoders.pytorch_encoders import TransformerEncoders
+from r2base.processors.crafters.tf_tokenizer import TransformerTokenizer
 from r2base.processors.crafters.basics import LowerCase, NoNumber, NoOp, SpaceTokenizer, NlpTokenizer
 from r2base.processors.reducers.pca import PCAReducer
 from r2base.config import EnvVar
-import os
 import logging
 
 logger = logging.getLogger()
@@ -18,6 +16,7 @@ processor_map = {
     'nothing': NoOp(),
     'tokenize': SpaceTokenizer(),
     'nlp_tokenize': NlpTokenizer(),
+    'tf_tokenize': NlpTokenizer(),
     'lower': LowerCase(),
     'remove_num': NoNumber(),
     'onnx_encode': None,

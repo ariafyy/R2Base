@@ -1,6 +1,5 @@
-# R2Base (Ranking & Reducing Engine)
+# R2Base: a Vector Database
 R2Base enables one to easily rank and reduce (dimension reduction and clustering) of high-dimensional dense/sparse vectors.
-
 
 ### Install & Run
     # install dependencies
