@@ -29,6 +29,11 @@ class EnvVar(object):
 
     LRU_CAP = os.environ.get("LRU_CAP", 10)
 
+    S3_SECRET = os.environ.get("S3_SECRET", '')
+    S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY", '')
+    S3_ENGINE = os.environ.get("S3_ENGINE", 's3')
+
+
     @classmethod
     def deepcopy(cls, x):
         return json.loads(json.dumps(x))

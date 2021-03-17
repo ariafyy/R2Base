@@ -10,7 +10,10 @@ class TransformerTokenizer(ProcessorBase):
 
     def _get_model(self, model_id):
         if self.models.get(model_id) is None:
-            self.models.put(model_id, EncoderLoader.load_tokenizer(model_id))
+            self.models.put(model_id, EncoderLoader.load_tokenizer(model_id,
+                                                                   access_key=EnvVar.S3_ACCESS_KEY,
+                                                                   secret=EnvVar.S3_SECRET,
+                                                                   engine=EnvVar.S3_ENGINE))
         return self.models.get(model_id)
 
     def run(self, data: Union[List[str], str], **kwargs) -> Union[List[List[str]], List[str]]:
