@@ -13,7 +13,7 @@ class GpuUMAPReducer(ProcessorBase):
 
     def store_model(self, model):
         try:
-            client = redis.Redis.from_url(EnvVar.Redis_URL)
+            client = redis.Redis.from_url(EnvVar.REDIS_URL)
             model_idx = str(uuid.uuid4())
             client.set(model_idx, pickle.dumps(model), ex=3600)
         except:

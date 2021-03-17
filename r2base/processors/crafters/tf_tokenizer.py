@@ -1,15 +1,17 @@
 from r2base.processors.bases import ProcessorBase
 from soco_tokenizer.model_loaders import EncoderLoader
 from typing import Union, List
+from r2base.utils import LRUCache
+from r2base.config import EnvVar
 
 
 class TransformerTokenizer(ProcessorBase):
-    models = {}
+    models = LRUCache(EnvVar.LRU_CAP)
 
     def _get_model(self, model_id):
-        if model_id not in self.models:
-            self.models[model_id] = EncoderLoader.load_tokenizer(model_id)
-        return self.models[model_id]
+        if self.models.get(model_id) is None:
+            self.models.put(model_id, EncoderLoader.load_tokenizer(model_id))
+        return self.models.get(model_id)
 
     def run(self, data: Union[List[str], str], **kwargs) -> Union[List[List[str]], List[str]]:
         model_id = kwargs['model_id']

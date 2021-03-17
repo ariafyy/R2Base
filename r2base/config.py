@@ -25,7 +25,9 @@ class EnvVar(object):
     MAX_NUM_INDEX = int(os.environ.get('MAX_NUM_INDEX', 1000))
     INDEX_BATCH_SIZE = int(os.environ.get('INDEX_BATCH_SIZE', 100))
 
-    Redis_URL = os.environ.get('Redis_URL', "redis://:Hzlh2020@localhost:6379/0")
+    REDIS_URL = os.environ.get('REDIS_URL', "redis://:Hzlh2020@localhost:6379/0")
+
+    LRU_CAP = os.environ.get("LRU_CAP", 10)
 
     @classmethod
     def deepcopy(cls, x):

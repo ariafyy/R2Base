@@ -16,7 +16,7 @@ processor_map = {
     'nothing': NoOp(),
     'tokenize': SpaceTokenizer(),
     'nlp_tokenize': NlpTokenizer(),
-    'tf_tokenize': NlpTokenizer(),
+    'tf_tokenize': TransformerTokenizer(),
     'lower': LowerCase(),
     'remove_num': NoNumber(),
     'onnx_encode': None,
