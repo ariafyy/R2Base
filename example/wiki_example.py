@@ -36,8 +36,7 @@ def wiki2doc(l):
 
 if __name__ == "__main__":
     path = "data/tiny_wiki.jsonl"
-    indexer = Indexer()
-    ranker = Ranker()
+c
 
     mapping = {
         'title': {'type': 'keyword'},

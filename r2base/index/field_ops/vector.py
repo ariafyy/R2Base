@@ -19,7 +19,7 @@ class VectorField(FieldOpBase):
                       vector: List[float],
                       top_k: int,
                       json_filter: Optional[Dict]):
-        
+
         assert len(vector) == mapping.num_dim
         if json_filter is None:
             query = {

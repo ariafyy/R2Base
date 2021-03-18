@@ -45,11 +45,13 @@ class MetaMapping(BasicMapping):
 class VectorMapping(BasicMapping):
     num_dim: int
     q_processor: str = None
+    model_id: str = None
 
 
 class TermScoreMapping(BasicMapping):
     mode: str = 'float'
     q_processor: str = None
+    model_id: str = None
 
 
 class TextMapping(BasicMapping):

@@ -47,8 +47,9 @@ class InvertedField(FieldOpBase):
             if mapping.q_processor is None:
                 raise Exception("q_processor is required for string query")
 
+            kwargs = {'model_id': mapping.model_id}
             pipe = Pipeline(mapping.q_processor)
-            tokens = pipe.run(tokens)
+            tokens = pipe.run(tokens, **kwargs)
 
         if mapping.mode == 'float':
             main_query = [{'rank_feature': {'field': '{}.{}'.format(key, t),
