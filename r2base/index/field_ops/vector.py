@@ -15,7 +15,11 @@ class VectorField(FieldOpBase):
         return vector
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: VectorMapping, vector: List[float], top_k: int, json_filter: Optional[Dict]):
+    def to_query_body(cls, key: str, mapping: VectorMapping,
+                      vector: List[float],
+                      top_k: int,
+                      json_filter: Optional[Dict]):
+        
         assert len(vector) == mapping.num_dim
         if json_filter is None:
             query = {

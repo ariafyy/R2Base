@@ -1,6 +1,7 @@
 from r2base.index.index_bases import FieldOpBase
 from r2base.mappings import TermScoreMapping
-from typing import Dict, List, Optional
+from r2base.processors.pipeline import Pipeline
+from typing import Dict, List, Optional, Union
 import logging
 import numpy as np
 
@@ -37,8 +38,18 @@ class InvertedField(FieldOpBase):
             raise Exception("Unknown term score mode={}".format(mapping.mode))
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: TermScoreMapping, tokens: List[str], top_k: int,
+    def to_query_body(cls, key: str, mapping: TermScoreMapping,
+                      tokens: Union[List[str], str],
+                      top_k: int,
                       json_filter: Optional[Dict]):
+
+        if type(tokens) is str:
+            if mapping.q_processor is None:
+                raise Exception("q_processor is required for string query")
+
+            pipe = Pipeline(mapping.q_processor)
+            tokens = pipe.run(tokens)
+
         if mapping.mode == 'float':
             main_query = [{'rank_feature': {'field': '{}.{}'.format(key, t),
                                             "log": {"scaling_factor": 1.0}

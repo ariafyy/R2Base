@@ -41,12 +41,15 @@ class BasicMapping(BaseModel):
 class MetaMapping(BasicMapping):
     value: Any
 
+
 class VectorMapping(BasicMapping):
     num_dim: int
+    q_processor: str = None
 
 
 class TermScoreMapping(BasicMapping):
     mode: str = 'float'
+    q_processor: str = None
 
 
 class TextMapping(BasicMapping):
