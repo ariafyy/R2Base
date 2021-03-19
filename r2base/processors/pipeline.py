@@ -56,6 +56,7 @@ class ReducePipeline(object):
                 if idx in valid_id_map:
                     d['_reduce'][dest_f] = output_data[valid_id_map[idx]].tolist()
                 d['_reduce']['model_id'] = model_idx
+                d['_source'].pop(src_field)
 
         return data
 
