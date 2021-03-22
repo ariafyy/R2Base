@@ -36,6 +36,7 @@ def parse_mapping(mapping: dict):
 
 class BasicMapping(BaseModel):
     type: str
+    save_raw: bool = False
 
 
 class MetaMapping(BasicMapping):
@@ -77,6 +78,9 @@ class TextMapping(BasicMapping):
 
         if 'index_mapping' not in data:
             data['index_mapping'] = {'type': data['index']}
+
+        if data.get('processor') and data['processor'] != 'nothing':
+            data['save_raw'] = True
 
         super().__init__(**data)
 

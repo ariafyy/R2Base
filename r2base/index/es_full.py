@@ -7,15 +7,28 @@ from r2base.index.field_ops.iv import InvertedField
 from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
 from r2base.index.field_ops.object import ObjectField
+from r2base.mappings import BasicMapping
 from typing import List, Union, Dict, Optional, Tuple
 
 
 class EsIndex(EsBaseIndex):
     type = IT.RANK
+    raw_mapping = BasicMapping.parse_obj({"type": FT.OBJECT})
 
     def __init__(self, root_dir: str, index_id: str, mapping):
         super().__init__(root_dir, index_id, mapping)
         self._default_src = None
+
+    @classmethod
+    def _raw(cls, field: str):
+        return field + '_raw'
+
+    @classmethod
+    def _deraw(cls, field: str):
+        if field.endswith('_raw'):
+            return field.replace('_raw', '')
+        else:
+            return field
 
     @classmethod
     def _get_field_op(cls, f_type):
@@ -47,7 +60,10 @@ class EsIndex(EsBaseIndex):
 
             for field, mapping in self.mapping.items():
                 if mapping.type in temp_list:
-                    temp.append(field)
+                    if mapping.save_raw:
+                        temp.append(self._raw(field))
+                    else:
+                        temp.append(field)
 
             self._default_src = temp
 
@@ -59,10 +75,14 @@ class EsIndex(EsBaseIndex):
         properties = {FT.ID: {'type': 'keyword'}}
 
         for field, mapping in self.mapping.items():
+            mapping: BasicMapping = mapping
             if mapping.type in {FT.META, FT.ID}:
                 continue
 
             properties[field] = self._get_field_op(mapping.type).to_mapping(mapping)
+
+            if mapping.save_raw:
+                properties[self._raw(field)] = self._get_field_op(FT.OBJECT).to_mapping(self.raw_mapping)
 
         config = {
             'mappings': {'properties': properties},
@@ -81,11 +101,13 @@ class EsIndex(EsBaseIndex):
         for doc, doc_id in zip(data, doc_ids):
             body = {}
             for field, value in doc.items():
-                mapping = self.mapping[field]
+                mapping: BasicMapping = self.mapping[field]
                 if mapping.type in {FT.META, FT.ID}:
                     continue
 
                 body[field] = self._get_field_op(mapping.type).to_add_body(mapping, value)
+                if mapping.save_raw:
+                    body[self._raw(field)] = self._get_field_op(FT.OBJECT).to_add_body(self.raw_mapping, value)
 
             body[FT.ID] = str(doc_id)
             body['_op_type'] = 'index'
@@ -114,10 +136,13 @@ class EsIndex(EsBaseIndex):
         # set up sources
         if includes is None and excludes is None:
             return self.default_src
+
         elif includes is None and excludes is not None:
             return {'excludes': excludes}
+
         elif includes is not None and excludes is None:
             return {'includes': includes}
+
         else:
             return {'includes': includes, 'excludes': excludes}
 
@@ -184,6 +209,7 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 src = h['_source']
+                src = {self._deraw(f): v for f, v in src.items()}
                 doc_id = src[FT.ID]
                 id2src[doc_id] = src
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
@@ -197,7 +223,7 @@ class EsIndex(EsBaseIndex):
         return docs
 
     def rank(self, match: Optional[Dict], sql_filter: Optional[str], top_k: int,
-             includes: Optional[List]=None, excludes: Optional[List]=None) -> List[Dict]:
+             includes: Optional[List] = None, excludes: Optional[List] = None) -> List[Dict]:
 
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
@@ -212,7 +238,7 @@ class EsIndex(EsBaseIndex):
         return docs
 
     def scroll(self, match: Optional[Dict], sql_filter: Optional[str], batch_size: int,
-               adv_match: Optional[Dict]=None,
+               adv_match: Optional[Dict] = None,
                includes: Optional[List] = None,
                excludes: Optional[List] = None,
                sort: Optional[List] = None,
