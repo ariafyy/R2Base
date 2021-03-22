@@ -116,7 +116,7 @@ class EsIndex(EsBaseIndex):
             return self.default_src
         elif includes is None and excludes is not None:
             return {'excludes': excludes}
-        elif includes is None and excludes is not None:
+        elif includes is not None and excludes is None:
             return {'includes': includes}
         else:
             return {'includes': includes, 'excludes': excludes}
