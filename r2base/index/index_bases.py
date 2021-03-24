@@ -52,6 +52,13 @@ class EsBaseIndex(IndexBase):
         tracer.setLevel(logging.WARNING)  # or desired level
         self.logger.info("Create ES client {}".format(EnvVar.ES_URL))
 
+    @classmethod
+    def _deraw(cls, field: str):
+        if field.endswith('_raw'):
+            return field.replace('_raw', '')
+        else:
+            return field
+
     def _make_index(self, index_id, config, params):
         if self.es.indices.exists(index=index_id):
             raise Exception("Index {} already existed".format(index_id))
@@ -101,7 +108,17 @@ class EsBaseIndex(IndexBase):
         res = self.es.search(index=self.index_id, body={'query': es_query, 'size': len(doc_ids)})
         docs = []
         for h in res['hits']['hits']:
-            docs.append(h['_source'])
+            src = h['_source']
+            remove_field = []
+            for f, v in src.items():
+                new_f = self._deraw(f)
+                if new_f != f:
+                    src[new_f] = v
+                    remove_field.append(f)
+
+            for field in remove_field:
+                src.pop(field)
+            docs.append(src)
         return docs
 
     def size(self) -> int:
