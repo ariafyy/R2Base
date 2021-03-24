@@ -62,8 +62,7 @@ class EsIndex(EsBaseIndex):
                 if mapping.type in temp_list:
                     if mapping.save_raw:
                         temp.append(self._raw(field))
-                    else:
-                        temp.append(field)
+                    temp.append(field)
 
             self._default_src = temp
 
