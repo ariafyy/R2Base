@@ -62,8 +62,7 @@ class EsIndex(EsBaseIndex):
                 if mapping.type in temp_list:
                     if mapping.save_raw:
                         temp.append(self._raw(field))
-                    else:
-                        temp.append(field)
+                    temp.append(field)
 
             self._default_src = temp
 
@@ -166,7 +165,18 @@ class EsIndex(EsBaseIndex):
         docs = []
         for h in res['hits']['hits']:
             score = h.get('_score', 0.0) if h['_score'] else 0.0
-            docs.append({'score': score, '_source': h['_source']})
+            src = h['_source']
+            remove_field = []
+            for f, v in src.items():
+                new_f = self._deraw(f)
+                if new_f != f:
+                    src[new_f] = v
+                    remove_field.append(f)
+
+            for field in remove_field:
+                src.pop(field)
+
+            docs.append({'score': score, '_source': src})
 
         return docs
 
@@ -209,7 +219,15 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 src = h['_source']
-                src = {self._deraw(f): v for f, v in src.items()}
+                remove_field = []
+                for f, v in src.items():
+                    new_f = self._deraw(f)
+                    if new_f != f:
+                        src[new_f] = v
+                        remove_field.append(f)
+
+                for field in remove_field:
+                    src.pop(field)
                 doc_id = src[FT.ID]
                 id2src[doc_id] = src
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
