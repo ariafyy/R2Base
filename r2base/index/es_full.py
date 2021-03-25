@@ -8,7 +8,7 @@ from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
 from r2base.index.field_ops.object import ObjectField
 from r2base.mappings import BasicMapping
-from typing import List, Union, Dict, Optional, Tuple
+from typing import List, Union, Dict, Optional
 
 
 class EsIndex(EsBaseIndex):
