@@ -1,14 +1,11 @@
 from typing import Union, List
 from r2base import FieldType as FT
-from r2base.mappings import parse_mapping, BasicMapping
 from r2base.processors.pipeline import ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
 from typing import Dict
 from tqdm import tqdm
-import json
 import logging
-import shutil
 import string
 from r2base.index.es_full import EsIndex
 
@@ -21,7 +18,6 @@ class Index(object):
         self._validate_index_id(index_id)
         self.index_id = index_id
         self.index_dir = os.path.join(root_dir, self.index_id)
-        self._mappings = None
         self._rank_index = None
 
     def _validate_index_id(self, index_id):
@@ -35,39 +31,13 @@ class Index(object):
         """
         :return: Load mapping from the disk.
         """
-        if self._mappings is not None:
-            return self._mappings
-
-        if not os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
-            return dict()
-
-        temp = json.load(open(os.path.join(self.index_dir, 'mappings.json'), 'r'))
-        self._mappings = dict()
-        for key, mapping in temp.items():
-            temp = parse_mapping(mapping)
-            if temp is None:
-                raise Exception("Error in parsing mapping {}".format(key))
-            self._mappings[key] = temp
-
-        return self._mappings
-
-    def _dump_mappings(self,  mappings: Dict):
-        """
-        Save the mapping to the disk
-        :param mappings:
-        :return:
-        """
-        if os.path.exists(os.path.join(self.index_dir, 'mappings.json')):
-            raise Exception("Index {} already existed".format(self.index_id))
-
-        temp = {k: v.dict() for k, v in mappings.items()}
-        return json.dump(temp, open(os.path.join(self.index_dir, 'mappings.json'), 'w'), indent=2)
+        return self.rank_index.mappings
 
     @property
     def rank_index(self) -> EsIndex:
         if self._rank_index is None:
-            # filter mappings
-            self._rank_index = EsIndex(self.index_dir, self.index_id, self.mappings)
+            self._rank_index = EsIndex(self.index_dir, self.index_id)
+
         return self._rank_index
 
     def create_index(self, mappings: Dict) -> None:
@@ -80,24 +50,7 @@ class Index(object):
             raise Exception("{} is reserved. Index creation aborted".format(FT.ID))
 
         self.logger.info("Creating index {}".format(self.index_id))
-
-        if not os.path.exists(self.index_dir):
-            self.logger.info("Created a new index dir {}".format(self.index_dir))
-            os.mkdir(self.index_dir)
-
-        # assign the internal field and overwrite
-        obj_mappings = {}
-        obj_mappings[FT.ID] = BasicMapping(type=FT.ID)
-
-        # validate format by parsing the dicts
-        for k, mapping in mappings.items():
-            obj_mappings[k] = parse_mapping(mapping)
-
-        # dump the mapping to disk
-        self._dump_mappings(obj_mappings)
-
-        # initialize the index
-        self.rank_index.create_index()
+        self.rank_index.create_index(mappings)
         return None
 
     def delete_index(self) -> None:
@@ -109,13 +62,6 @@ class Index(object):
         # first delete each sub-index
         self.rank_index.delete_index()
         self._rank_index = None
-        self._mappings = None
-
-        # remove the whole folder
-        try:
-            shutil.rmtree(self.index_dir)
-        except Exception as e:
-            self.logger.info(e)
 
     def get_mappings(self) -> Dict:
         # force to reload

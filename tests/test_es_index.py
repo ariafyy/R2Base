@@ -5,16 +5,18 @@ import time
 
 WORK_DIR = "."
 
+
 def test_empty_match():
-    c = EsIndex(WORK_DIR, 'test_empty_match',
-                    {'f1': BasicMapping(type='keyword'),
-                     'f2': BasicMapping(type='integer'),
-                     'f3': BasicMapping(type='float'),
-                     "f4": BasicMapping(type='date'),
-                     "f5": BasicMapping(type='datetime')})
+    mappings = {'f1': {'type': 'keyword'},
+                'f2': {'type': 'integer'},
+                'f3': {'type': 'float'},
+                'f4': {'type': 'date'},
+                'f5': {'type': 'datetime'}}
+
+    c = EsIndex(WORK_DIR, 'test_empty_match')
 
     c.delete_index()
-    c.create_index()
+    c.create_index(mappings)
     c.add({'f1': "haha", "f2": 10, "f4": '2019-06-28'}, '1')
     c.add({'f1': "lala", "f3": 10.3, "f5": '2015-01-01T12:10:30Z'}, '2')
     c.add({'f2': 12, "f3": 3.3}, '3')
@@ -26,16 +28,18 @@ def test_empty_match():
     assert len(c.rank(None, None, 10)) == 5
     c.delete_index()
 
+
 def test_filter_index():
-    c = EsIndex(WORK_DIR, 'test_filter_index',
-                    {'f1': BasicMapping(type='keyword'),
-                     'f2': BasicMapping(type='integer'),
-                     'f3': BasicMapping(type='float'),
-                     "f4": BasicMapping(type='date'),
-                     "f5": BasicMapping(type='datetime')})
+    mappings = {'f1': {'type': 'keyword'},
+                'f2': {'type': 'integer'},
+                'f3': {'type': 'float'},
+                'f4': {'type': 'date'},
+                'f5': {'type': 'datetime'}}
+
+    c = EsIndex(WORK_DIR, 'test_filter_index')
 
     c.delete_index()
-    c.create_index()
+    c.create_index(mappings)
     c.add({'f1': "haha", "f2": 10, "f4": '2019-06-28'}, '123')
     c.add({'f1': "lala", "f3": 10.3, "f5": '2015-01-01T12:10:30Z'}, '456')
     c.add({'f2': 12, "f3": 3.3}, '666')
@@ -57,12 +61,12 @@ def test_filter_index():
 
 
 def test_bm25():
-    mapping = {'f1': TextMapping(type='text', index='bm25', lang='zh'),
-               'f2': TextMapping(type='text', index='bm25', lang='en')
+    mapping = {'f1': {'type': 'text', 'index': 'bm25', 'lang': 'zh'},
+               'f2': {'type': 'text', 'index': 'bm25', 'lang': 'en'},
                }
-    i = EsIndex(WORK_DIR, 'test_bm25', mapping)
+    i = EsIndex(WORK_DIR, 'test_bm25')
     i.delete_index()
-    i.create_index()
+    i.create_index(mapping)
     i.add({'f1': '我来自北京，叫做赵天成'}, '1')
     i.add({'f1': '我来自杭州，叫做赵天成', 'f2': 'I am from New York'}, '2')
     i.add([{'f1': '我来自上海，叫做赵天成', 'f2': 'I am from Los Angeles'},
@@ -80,7 +84,6 @@ def test_bm25():
     assert len(i.rank({'f1': {'value': {'bool': {'must': {'term': {'f1': '来自'}}}}},
                        'f2': 'New'}, None, 10)) == 4
 
-
     # delete data
     i.delete(['1', '2'])
     time.sleep(2)
@@ -92,12 +95,12 @@ def test_bm25():
 
 
 def test_vector():
-    mapping = {'f1': VectorMapping(type='vector', num_dim=3),
-               'f2': VectorMapping(type='vector', num_dim=3)
+    mapping = {'f1': {'type': 'vector', 'num_dim': 3},
+               'f2': {'type': 'vector', 'num_dim': 3},
                }
-    index = EsIndex(WORK_DIR, 'test_vector', mapping)
+    index = EsIndex(WORK_DIR, 'test_vector')
     index.delete_index()
-    index.create_index()
+    index.create_index(mapping)
     index.add({'f1': [1, 2, 3]}, '1')
     index.add({'f1': [2, 4, 5], 'f2': [-1, -2, -3]}, '2')
     index.add([{'f1': [3, -2, 3], 'f2': [1, -2, -3]},
@@ -118,12 +121,12 @@ def test_vector():
 
 
 def test_term_score():
-    mapping = {'f1': TermScoreMapping(type='term_score', mode='int'),
-               'f2': TermScoreMapping(type='term_score', mode='float')
+    mapping = {'f1': {'type': 'term_score', 'mode': 'int'},
+               'f2': {'type': 'term_score', 'mode': 'float'},
                }
-    i = EsIndex(WORK_DIR, 'test_ts', mapping)
+    i = EsIndex(WORK_DIR, 'test_ts')
     i.delete_index()
-    i.create_index()
+    i.create_index(mapping)
     i.add({'f1': {'a': 1, 'b': 2}}, '1')
     i.add([{'f1': {'a': 1, 'b': 1},
             'f2': {'c': 1, 'b': 2}},
@@ -149,5 +152,3 @@ def test_term_score():
     assert len(docs) == 2
     assert docs[0]['score'] == pytest.approx(10.0, rel=0.1)
     i.delete_index()
-
-

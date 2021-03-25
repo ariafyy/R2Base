@@ -7,14 +7,14 @@ WORK_DIR = "."
 
 
 def test_basic_crud():
-    mapping = {'f1': BasicMapping(type='keyword'),
-               'f2': BasicMapping(type='integer'),
-               'f3': BasicMapping(type='float'),
-               "f4": BasicMapping(type='datetime')}
+    mappings =  {'f1': {'type': 'keyword'},
+                'f2': {'type': 'integer'},
+                'f3': {'type': 'float'},
+                'f4': {'type': 'datetime'}}
 
     i = Index(WORK_DIR, 'test_crud_index')
     i.delete_index()
-    i.create_index(mapping)
+    i.create_index(mappings)
 
     # get mapping
     dump_mapping = i.get_mappings()

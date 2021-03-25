@@ -4,6 +4,7 @@ from typing import List, Union, Tuple, Dict
 from r2base import FieldType as FT
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch import helpers as es_helpers
+from r2base.mappings import parse_mapping, BasicMapping
 import logging
 import os
 
@@ -12,10 +13,10 @@ class IndexBase(object):
     type: str
     logger = logging.getLogger(__name__)
 
-    def __init__(self, root_dir: str, index_id: str, mapping):
+    def __init__(self, root_dir: str, index_id: str):
         self.root_dir = root_dir
         self.index_id = index_id
-        self.mapping = mapping
+        self._mappings = None
         self.work_dir = os.path.join(self.root_dir, self.index_id)
         self._client = None
 
@@ -34,13 +35,19 @@ class IndexBase(object):
     def delete(self, *args, **kwargs) -> None:
         pass
 
+    def read(self, *args, **kwargs):
+        pass
+
+    def update(self, *args, **kwargs):
+        pass
+
     def rank(self, *args, **kwargs) -> List[Tuple[float, int]]:
         pass
 
 
 class EsBaseIndex(IndexBase):
-    def __init__(self, root_dir: str, index_id: str, mapping):
-        super().__init__(root_dir, index_id, mapping)
+    def __init__(self, root_dir: str, index_id: str):
+        super().__init__(root_dir, index_id)
         self.es = Elasticsearch(
             hosts=[EnvVar.ES_URL],
             ca_certs=False,
@@ -95,6 +102,34 @@ class EsBaseIndex(IndexBase):
         sql_filter = 'SELECT * FROM "{}" WHERE {}'.format(self.index_id, sql_filter)
         res = self.es.sql.translate(body={'query': sql_filter})
         return res['query']
+
+    def _dump_mapping(self, mappings: Dict):
+        """
+        Save the mapping to the disk
+        :param mappings:
+        :return:
+        """
+        return {k: v.dict() for k, v in mappings.items()}
+
+    def _load_mapping(self, mappings: Dict):
+        res = {}
+        for key, m in mappings.items():
+            temp = parse_mapping(m)
+            if temp is None:
+                raise Exception("Error in parsing mapping {}".format(key))
+            res[key] = temp
+        return res
+
+    @property
+    def mappings(self):
+        try:
+            if self._mappings is None:
+                res = self.es.indices.get_mapping(index=self.index_id)
+                self._mappings = self._load_mapping(res[self.index_id]['mappings']['_meta'])
+            return self._mappings
+        except Exception as e:
+            self.logger.error(e)
+            return {}
 
     def delete_index(self) -> None:
         try:
