@@ -53,11 +53,32 @@ class EsBaseIndex(IndexBase):
         self.logger.info("Create ES client {}".format(EnvVar.ES_URL))
 
     @classmethod
+    def _raw(cls, field: str):
+        return field + '_raw'
+
+    @classmethod
     def _deraw(cls, field: str):
         if field.endswith('_raw'):
             return field.replace('_raw', '')
         else:
             return field
+
+    @classmethod
+    def _deraw_src(cls, src):
+        remove_field = []
+        clean_src = {}
+
+        for f, v in src.items():
+            new_f = cls._deraw(f)
+            if new_f != f:
+                remove_field.append((f, new_f))
+            else:
+                clean_src[f] = v
+
+        for f, new_f in remove_field:
+            clean_src[new_f] = src[f]
+
+        return clean_src
 
     def _make_index(self, index_id, config, params):
         if self.es.indices.exists(index=index_id):
@@ -109,15 +130,7 @@ class EsBaseIndex(IndexBase):
         docs = []
         for h in res['hits']['hits']:
             src = h['_source']
-            remove_field = []
-            for f, v in src.items():
-                new_f = self._deraw(f)
-                if new_f != f:
-                    src[new_f] = v
-                    remove_field.append(f)
-
-            for field in remove_field:
-                src.pop(field)
+            src = self._deraw_src(src)
             docs.append(src)
         return docs
 
@@ -154,4 +167,8 @@ class FieldOpBase(object):
         return score
 
 
+if __name__ == '__main__':
+    a = {'a': 1, 'a_raw': 2, "b_raw": 3, 'c': 4}
+    b = EsBaseIndex._deraw_src(a)
+    print(b)
 

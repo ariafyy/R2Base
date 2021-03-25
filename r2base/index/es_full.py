@@ -8,7 +8,7 @@ from r2base.index.field_ops.vector import VectorField
 from r2base.index.field_ops.filter import FilterField
 from r2base.index.field_ops.object import ObjectField
 from r2base.mappings import BasicMapping
-from typing import List, Union, Dict, Optional, Tuple
+from typing import List, Union, Dict, Optional
 
 
 class EsIndex(EsBaseIndex):
@@ -18,17 +18,6 @@ class EsIndex(EsBaseIndex):
     def __init__(self, root_dir: str, index_id: str, mapping):
         super().__init__(root_dir, index_id, mapping)
         self._default_src = None
-
-    @classmethod
-    def _raw(cls, field: str):
-        return field + '_raw'
-
-    @classmethod
-    def _deraw(cls, field: str):
-        if field.endswith('_raw'):
-            return field.replace('_raw', '')
-        else:
-            return field
 
     @classmethod
     def _get_field_op(cls, f_type):
@@ -166,16 +155,7 @@ class EsIndex(EsBaseIndex):
         for h in res['hits']['hits']:
             score = h.get('_score', 0.0) if h['_score'] else 0.0
             src = h['_source']
-            remove_field = []
-            for f, v in src.items():
-                new_f = self._deraw(f)
-                if new_f != f:
-                    src[new_f] = v
-                    remove_field.append(f)
-
-            for field in remove_field:
-                src.pop(field)
-
+            src = self._deraw_src(src)
             docs.append({'score': score, '_source': src})
 
         return docs
@@ -219,15 +199,8 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 src = h['_source']
-                remove_field = []
-                for f, v in src.items():
-                    new_f = self._deraw(f)
-                    if new_f != f:
-                        src[new_f] = v
-                        remove_field.append(f)
+                src = self._deraw_src(src)
 
-                for field in remove_field:
-                    src.pop(field)
                 doc_id = src[FT.ID]
                 id2src[doc_id] = src
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
