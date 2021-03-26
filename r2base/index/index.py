@@ -3,7 +3,7 @@ from r2base import FieldType as FT
 from r2base.processors.pipeline import ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
-from typing import Dict
+from typing import Dict, Optional, List
 from tqdm import tqdm
 import logging
 import string
@@ -152,7 +152,13 @@ class Index(object):
         if top_k <= 0:
             return []
 
-        docs = self.rank_index.rank(q_match, q_filter, top_k, include, exclude)
+        # Add fields needed for Reduce
+        if q_reduce is not None and q_reduce:
+            reduce_include = ReducePipeline.get_src_fields(q_reduce)
+        else:
+            reduce_include = None
+
+        docs = self.rank_index.rank(q_match, q_filter, top_k, include, exclude, reduce_include)
 
         if q_reduce is not None and q_reduce:
             docs = ReducePipeline().run(q_reduce, docs)

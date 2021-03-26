@@ -20,6 +20,17 @@ class Pipeline(object):
 class ReducePipeline(object):
     logger = logging.getLogger(__name__)
 
+    @classmethod
+    def get_src_fields(self, query: Dict):
+        data = []
+        for dest_f, pack in query.items():
+            if type(pack) is dict:
+                pack = [pack]
+
+            src_field = pack[0]['input']
+            data.append(src_field)
+        return data
+
     def run(self, query: Dict, data: List):
         if len(data) < 1:
             self.logger.error("Too few data points ({}) for reduction".format(len(data)))
@@ -44,6 +55,7 @@ class ReducePipeline(object):
             input_data = np.array(input_data)
             output_data = input_data
 
+            model_idx = None
             for op_id, op in enumerate(pack):
                 kwargs = op.get('kwargs', {})
                 p = processor_map[op['method']]

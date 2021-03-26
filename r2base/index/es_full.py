@@ -113,35 +113,39 @@ class EsIndex(EsBaseIndex):
         else:
             self.logger.warn("Skip add since data is empty.")
 
-    def _get_src_filters(self, includes: Optional[List], excludes: Optional[List]):
+    def _get_src_filters(self, includes: Optional[List], excludes: Optional[List], reduce_includes: Optional[List]):
         if type(includes) is list and len(includes) == 0:
             includes = None
 
         if type(excludes) is list and len(excludes) == 0:
             excludes = None
 
+        if reduce_includes is None:
+            reduce_includes = []
+
         # make sure ID is in the source
         if includes is not None and FT.ID not in includes:
             includes = includes + [FT.ID]
 
+        # make sure ID is not excluded
         if excludes is not None and FT.ID in excludes:
             excludes = [e for e in excludes if e != FT.ID]
 
         # set up sources
         if includes is None and excludes is None:
-            return self.default_src
+            return self.default_src + reduce_includes
 
         elif includes is None and excludes is not None:
             return {'excludes': excludes}
 
         elif includes is not None and excludes is None:
-            return {'includes': includes}
+            return {'includes': includes + reduce_includes}
 
         else:
-            return {'includes': includes, 'excludes': excludes}
+            return {'includes': includes + reduce_includes, 'excludes': excludes}
 
-    def _empty_query(self, json_filter, top_k, includes=None, excludes=None):
-        src_filter = self._get_src_filters(includes, excludes)
+    def _empty_query(self, json_filter, top_k, includes=None, excludes=None, reduce_includes=None):
+        src_filter = self._get_src_filters(includes, excludes, reduce_includes)
 
         if json_filter is None:
             es_query = {
@@ -166,11 +170,11 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None):
+    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None, reduce_includes=None):
         es_qs = []
         keys = []
         ths = []
-        src_filter = self._get_src_filters(includes, excludes)
+        src_filter = self._get_src_filters(includes, excludes, reduce_includes)
 
         for field, value in match.items():
             mapping = self.mappings[field]
@@ -219,8 +223,12 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def rank(self, match: Optional[Dict], sql_filter: Optional[str], top_k: int,
-             includes: Optional[List] = None, excludes: Optional[List] = None) -> List[Dict]:
+    def rank(self, match: Optional[Dict],
+             sql_filter: Optional[str],
+             top_k: int,
+             includes: Optional[List] = None,
+             excludes: Optional[List] = None,
+             reduce_includes: Optional[List] = None) -> List[Dict]:
 
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
@@ -228,9 +236,9 @@ class EsIndex(EsBaseIndex):
             json_filter = None
 
         if match and len(match) > 0:
-            docs = self._query(match, json_filter, top_k, includes, excludes)
+            docs = self._query(match, json_filter, top_k, includes, excludes, reduce_includes)
         else:
-            docs = self._empty_query(json_filter, top_k, includes, excludes)
+            docs = self._empty_query(json_filter, top_k, includes, excludes, reduce_includes)
 
         return docs
 
