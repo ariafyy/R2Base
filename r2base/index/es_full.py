@@ -113,7 +113,10 @@ class EsIndex(EsBaseIndex):
         else:
             self.logger.warn("Skip add since data is empty.")
 
-    def _get_src_filters(self, includes: Optional[List], excludes: Optional[List], reduce_includes: Optional[List]):
+    def _get_src_filters(self, includes: Optional[List],
+                         excludes: Optional[List],
+                         reduce_includes: Optional[List]):
+
         if type(includes) is list and len(includes) == 0:
             includes = None
 
@@ -250,7 +253,7 @@ class EsIndex(EsBaseIndex):
                search_after: Optional[List] = None):
 
         # build source
-        src_filter = self._get_src_filters(includes, excludes)
+        src_filter = self._get_src_filters(includes, excludes, None)
 
         if not sort:
             sort = {"_uid": "asc"}
@@ -258,6 +261,7 @@ class EsIndex(EsBaseIndex):
         query = None
         if adv_match is not None and len(adv_match) > 0:
             query = adv_match
+
         elif match is not None:
             temp = []
             for key, value in match.items():
@@ -265,6 +269,7 @@ class EsIndex(EsBaseIndex):
                 if mapping.type == FT.TEXT and type(value) is str:
                     p_value = self._get_field_op(mapping.type).process_value(mapping, value, is_query=True)
                     temp.append({'match': {key: p_value}})
+
             if len(temp) > 0:
                 query = {'bool': {'should': temp}}
 

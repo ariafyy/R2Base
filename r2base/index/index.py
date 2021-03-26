@@ -1,9 +1,8 @@
-from typing import Union, List
 from r2base import FieldType as FT
 from r2base.processors.pipeline import ReducePipeline
 from r2base.utils import chunks, get_uid
 import os
-from typing import Dict, Optional, List
+from typing import Dict, List, Union
 from tqdm import tqdm
 import logging
 import string

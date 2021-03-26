@@ -4,8 +4,8 @@ import logging
 from r2base.index.index import Index
 from r2base.utils import LRUCache
 
-class EngineBase(object):
 
+class EngineBase(object):
     logger = logging.getLogger(__name__)
     root_dir = os.path.dirname(os.path.abspath(__file__)).replace('r2base/engine', '')
     index_dir = os.path.join(root_dir, EnvVar.INDEX_DIR)

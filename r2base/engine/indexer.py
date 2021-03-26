@@ -2,7 +2,6 @@ from r2base.engine.bases import EngineBase
 from r2base.config import EnvVar
 import logging
 from typing import Union, List, Dict
-import os
 from r2base.index.index_bases import EsBaseIndex
 
 class Indexer(EngineBase):
