@@ -3,7 +3,7 @@ from r2base.config import EnvVar
 import logging
 from typing import Union, List, Dict
 import os
-
+from r2base.index.index_bases import EsBaseIndex
 
 class Indexer(EngineBase):
     logger = logging.getLogger(__name__)
@@ -22,11 +22,7 @@ class Indexer(EngineBase):
         return self.get_index(index_id).size()
 
     def list(self) -> List[str]:
-        res = []
-        for f in os.listdir(self.index_dir):
-            if os.path.isdir(os.path.join(self.index_dir, f)):
-                res.append(f)
-        return res
+        return EsBaseIndex.list_indexes()
 
     def add_docs(self, index_id: str,
                  docs: Union[Dict, List[Dict]],

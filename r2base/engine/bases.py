@@ -2,7 +2,7 @@ import os
 from r2base.config import EnvVar
 import logging
 from r2base.index.index import Index
-
+from r2base.utils import LRUCache
 
 class EngineBase(object):
 
@@ -13,22 +13,13 @@ class EngineBase(object):
         logger.info("Created a new index dir {}".format(index_dir))
         os.mkdir(index_dir)
 
-    indexes = dict()
-
-    def sync_index(self, index_id: str) -> None:
-        if not os.path.exists(os.path.join(self.index_dir, index_id)):
-            self.indexes.pop(index_id, None)
+    indexes = LRUCache(EnvVar.MAX_NUM_INDEX)
 
     def get_index(self, index_id: str) -> Index:
-        self.sync_index(index_id)
+        if self.indexes.get(index_id) is None:
+            self.indexes.put(index_id, Index(self.index_dir, index_id))
 
-        if index_id not in self.indexes:
-            if len(self.indexes) > EnvVar.MAX_NUM_INDEX:
-                self.indexes.pop(list(self.indexes.keys())[0])
-
-            self.indexes[index_id] = Index(self.index_dir, index_id)
-
-        return self.indexes[index_id]
+        return self.indexes.get(index_id)
 
 
 

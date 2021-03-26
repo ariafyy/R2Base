@@ -60,6 +60,18 @@ class EsBaseIndex(IndexBase):
         self.logger.info("Create ES client {}".format(EnvVar.ES_URL))
 
     @classmethod
+    def list_indexes(cls):
+        es = Elasticsearch(
+            hosts=[EnvVar.ES_URL],
+            ca_certs=False,
+            verify_certs=False,
+            timeout=1000,
+            connection_class=RequestsHttpConnection
+        )
+        res = es.indices.get_alias("*")
+        return list(res.keys())
+
+    @classmethod
     def _raw(cls, field: str):
         return field + '_raw'
 

@@ -32,7 +32,7 @@ class LRUCache:
     # don't find the key in out dict / cache.
     # And also move the key to the end
     # to show that it was recently used.
-    def get(self, key: int):
+    def get(self, key):
         if key not in self.cache:
             return None
         else:
@@ -49,3 +49,6 @@ class LRUCache:
         self.cache.move_to_end(key)
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
+
+    def pop(self, key, value):
+        self.cache.pop(key, None)
