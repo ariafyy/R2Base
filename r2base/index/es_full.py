@@ -15,8 +15,8 @@ class EsIndex(EsBaseIndex):
     type = IT.RANK
     raw_mapping = BasicMapping.parse_obj({"type": FT.OBJECT})
 
-    def __init__(self, root_dir: str, index_id: str, mapping):
-        super().__init__(root_dir, index_id, mapping)
+    def __init__(self, root_dir: str, index_id: str):
+        super().__init__(root_dir, index_id)
         self._default_src = None
 
     @classmethod
@@ -47,7 +47,7 @@ class EsIndex(EsBaseIndex):
             temp_list.add(FT.TEXT)
             temp_list.add(FT.OBJECT)
 
-            for field, mapping in self.mapping.items():
+            for field, mapping in self.mappings.items():
                 if mapping.type in temp_list:
                     if mapping.save_raw:
                         temp.append(self._raw(field))
@@ -57,13 +57,19 @@ class EsIndex(EsBaseIndex):
 
         return self._default_src
 
-    def create_index(self) -> None:
+    def create_index(self, mappings: Dict) -> None:
+        if FT.ID in mappings.keys():
+            raise Exception("{} is reserved. Index creation aborted".format(FT.ID))
+
         params = {"timeout": '60s'}
         setting = EnvVar.deepcopy(EnvVar.ES_SETTING)
         properties = {FT.ID: {'type': 'keyword'}}
 
-        for field, mapping in self.mapping.items():
-            mapping: BasicMapping = mapping
+        obj_mappings = self._load_mapping(mappings)
+        obj_mappings[FT.ID] = BasicMapping(type=FT.ID)
+
+        for field, m in obj_mappings.items():
+            mapping: BasicMapping = m
             if mapping.type in {FT.META, FT.ID}:
                 continue
 
@@ -73,7 +79,7 @@ class EsIndex(EsBaseIndex):
                 properties[self._raw(field)] = self._get_field_op(FT.OBJECT).to_mapping(self.raw_mapping)
 
         config = {
-            'mappings': {'properties': properties},
+            'mappings': {'properties': properties, '_meta': self._dump_mapping(obj_mappings)},
             'settings': setting
         }
 
@@ -89,7 +95,7 @@ class EsIndex(EsBaseIndex):
         for doc, doc_id in zip(data, doc_ids):
             body = {}
             for field, value in doc.items():
-                mapping: BasicMapping = self.mapping[field]
+                mapping: BasicMapping = self.mappings[field]
                 if mapping.type in {FT.META, FT.ID}:
                     continue
 
@@ -107,35 +113,42 @@ class EsIndex(EsBaseIndex):
         else:
             self.logger.warn("Skip add since data is empty.")
 
-    def _get_src_filters(self, includes: Optional[List], excludes: Optional[List]):
+    def _get_src_filters(self, includes: Optional[List],
+                         excludes: Optional[List],
+                         reduce_includes: Optional[List]):
+
         if type(includes) is list and len(includes) == 0:
             includes = None
 
         if type(excludes) is list and len(excludes) == 0:
             excludes = None
 
+        if reduce_includes is None:
+            reduce_includes = []
+
         # make sure ID is in the source
         if includes is not None and FT.ID not in includes:
             includes = includes + [FT.ID]
 
+        # make sure ID is not excluded
         if excludes is not None and FT.ID in excludes:
             excludes = [e for e in excludes if e != FT.ID]
 
         # set up sources
         if includes is None and excludes is None:
-            return self.default_src
+            return self.default_src + reduce_includes
 
         elif includes is None and excludes is not None:
             return {'excludes': excludes}
 
         elif includes is not None and excludes is None:
-            return {'includes': includes}
+            return {'includes': includes + reduce_includes}
 
         else:
-            return {'includes': includes, 'excludes': excludes}
+            return {'includes': includes + reduce_includes, 'excludes': excludes}
 
-    def _empty_query(self, json_filter, top_k, includes=None, excludes=None):
-        src_filter = self._get_src_filters(includes, excludes)
+    def _empty_query(self, json_filter, top_k, includes=None, excludes=None, reduce_includes=None):
+        src_filter = self._get_src_filters(includes, excludes, reduce_includes)
 
         if json_filter is None:
             es_query = {
@@ -160,14 +173,14 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None):
+    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None, reduce_includes=None):
         es_qs = []
         keys = []
         ths = []
-        src_filter = self._get_src_filters(includes, excludes)
+        src_filter = self._get_src_filters(includes, excludes, reduce_includes)
 
         for field, value in match.items():
-            mapping = self.mapping[field]
+            mapping = self.mappings[field]
 
             if type(value) is dict:
                 threshold = value.get('threshold', None)
@@ -188,7 +201,7 @@ class EsIndex(EsBaseIndex):
         id2score = {}
         id2src = {}
         for k_id, key in enumerate(keys):
-            mapping = self.mapping[key]
+            mapping = self.mappings[key]
             threshold = ths[k_id]
 
             res = m_res['responses'][k_id]
@@ -213,8 +226,12 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def rank(self, match: Optional[Dict], sql_filter: Optional[str], top_k: int,
-             includes: Optional[List] = None, excludes: Optional[List] = None) -> List[Dict]:
+    def rank(self, match: Optional[Dict],
+             sql_filter: Optional[str],
+             top_k: int,
+             includes: Optional[List] = None,
+             excludes: Optional[List] = None,
+             reduce_includes: Optional[List] = None) -> List[Dict]:
 
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
@@ -222,9 +239,9 @@ class EsIndex(EsBaseIndex):
             json_filter = None
 
         if match and len(match) > 0:
-            docs = self._query(match, json_filter, top_k, includes, excludes)
+            docs = self._query(match, json_filter, top_k, includes, excludes, reduce_includes)
         else:
-            docs = self._empty_query(json_filter, top_k, includes, excludes)
+            docs = self._empty_query(json_filter, top_k, includes, excludes, reduce_includes)
 
         return docs
 
@@ -236,7 +253,7 @@ class EsIndex(EsBaseIndex):
                search_after: Optional[List] = None):
 
         # build source
-        src_filter = self._get_src_filters(includes, excludes)
+        src_filter = self._get_src_filters(includes, excludes, None)
 
         if not sort:
             sort = {"_uid": "asc"}
@@ -244,13 +261,15 @@ class EsIndex(EsBaseIndex):
         query = None
         if adv_match is not None and len(adv_match) > 0:
             query = adv_match
+
         elif match is not None:
             temp = []
             for key, value in match.items():
-                mapping = self.mapping[key]
+                mapping = self.mappings[key]
                 if mapping.type == FT.TEXT and type(value) is str:
                     p_value = self._get_field_op(mapping.type).process_value(mapping, value, is_query=True)
                     temp.append({'match': {key: p_value}})
+
             if len(temp) > 0:
                 query = {'bool': {'should': temp}}
 

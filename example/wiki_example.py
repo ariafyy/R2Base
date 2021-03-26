@@ -38,6 +38,8 @@ if __name__ == "__main__":
     path = "data/tiny_wiki.jsonl"
     indexer = Indexer()
     ranker = Ranker()
+    print(indexer.list())
+
     mapping = {
         'title': {'type': 'keyword'},
         'text': {'type': 'text',

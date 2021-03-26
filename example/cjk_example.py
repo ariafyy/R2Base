@@ -4,6 +4,7 @@ import json
 import numpy as np
 import time
 
+
 def wiki2doc(l):
     temp = json.loads(l)
     docs = [{'title': temp[0],
