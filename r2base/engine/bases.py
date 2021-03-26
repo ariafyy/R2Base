@@ -3,6 +3,7 @@ from r2base.config import EnvVar
 import logging
 from r2base.index.index import Index
 from r2base.utils import LRUCache
+from r2base.engine.manager import IndexManager
 
 
 class EngineBase(object):
@@ -14,6 +15,8 @@ class EngineBase(object):
         os.mkdir(index_dir)
 
     indexes = LRUCache(EnvVar.MAX_NUM_INDEX)
+    manager = IndexManager(index_dir)
+
 
     def get_index(self, index_id: str) -> Index:
         if self.indexes.get(index_id) is None:

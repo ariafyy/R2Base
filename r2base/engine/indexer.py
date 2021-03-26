@@ -4,15 +4,18 @@ import logging
 from typing import Union, List, Dict
 from r2base.index.index_bases import EsBaseIndex
 
+
 class Indexer(EngineBase):
     logger = logging.getLogger(__name__)
 
     def create_index(self, index_id: str, mappings: Dict):
+        self.manager.put(index_id)
         return self.get_index(index_id).create_index(mappings)
 
     def delete_index(self, index_id: str):
         self.get_index(index_id).delete_index()
         self.indexes.pop(index_id, None)
+        self.manager.pop(index_id)
 
     def get_mapping(self, index_id: str):
         return self.get_index(index_id).get_mappings()
@@ -21,7 +24,7 @@ class Indexer(EngineBase):
         return self.get_index(index_id).size()
 
     def list(self) -> List[str]:
-        return EsBaseIndex.list_indexes()
+        return self.manager.list_indices()
 
     def add_docs(self, index_id: str,
                  docs: Union[Dict, List[Dict]],
