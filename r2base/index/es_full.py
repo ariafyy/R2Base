@@ -295,7 +295,8 @@ class EsIndex(EsBaseIndex):
         docs = []
         last_id = None
         for h in res['hits']['hits']:
-            docs.append(h['_source'])
+            src = h['_source']
+            docs.append(self._deraw_src(src))
             last_id = h['sort']
 
         return docs, last_id
