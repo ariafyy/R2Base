@@ -206,7 +206,7 @@ class FieldOpBase(object):
     def to_add_body(self, mapping, value):
         return value
 
-    def to_query_body(self, key, mapping, query, top_k, json_filter):
+    def to_query_body(self, key, mapping, query, top_k, json_filter, from_):
         pass
 
     @classmethod
