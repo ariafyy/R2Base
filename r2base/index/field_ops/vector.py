@@ -18,7 +18,8 @@ class VectorField(FieldOpBase):
     def to_query_body(cls, key: str, mapping: VectorMapping,
                       vector: List[float],
                       top_k: int,
-                      json_filter: Optional[Dict]):
+                      json_filter: Optional[Dict],
+                      from_: int):
 
         assert len(vector) == mapping.num_dim
         if json_filter is None:
@@ -33,7 +34,8 @@ class VectorField(FieldOpBase):
                                 "query_vector": vector
                             }
                         }}},
-                "size": top_k
+                "size": top_k,
+                "from": from_
             }
         else:
             query = {
@@ -47,7 +49,8 @@ class VectorField(FieldOpBase):
                                 "query_vector": vector
                             }
                         }}},
-                "size": top_k
+                "size": top_k,
+                "from": from_
             }
 
         return query

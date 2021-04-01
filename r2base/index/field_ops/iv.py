@@ -41,7 +41,8 @@ class InvertedField(FieldOpBase):
     def to_query_body(cls, key: str, mapping: TermScoreMapping,
                       tokens: Union[List[str], str],
                       top_k: int,
-                      json_filter: Optional[Dict]):
+                      json_filter: Optional[Dict],
+                      from_:int):
 
         if type(tokens) is str:
             if mapping.q_processor is None:
@@ -59,13 +60,15 @@ class InvertedField(FieldOpBase):
                 es_query = {
                     "_source": False,
                     "query": {"bool": {"should": main_query}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
             else:
                 es_query = {
                     "_source": False,
                     "query": {"bool": {"should": main_query, "filter": json_filter}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
             return es_query
         elif mapping.mode == 'int':
@@ -73,14 +76,16 @@ class InvertedField(FieldOpBase):
                 es_query = {
                     "_source": False,
                     "query": {"match": {key: '/'.join(tokens)}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
             else:
                 value = '/'.join(tokens)
                 es_query = {
                     "_source": False,
                     "query": {"bool": {"must": {"match": {key: value}}, "filter": json_filter}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
             return es_query
         else:

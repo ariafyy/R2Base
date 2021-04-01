@@ -35,7 +35,8 @@ class TextField(FieldOpBase):
 
     @classmethod
     def to_query_body(cls, key: str, mapping: TextMapping, query: str, top_k: int,
-                      json_filter: Optional[Dict]):
+                      json_filter: Optional[Dict],
+                      from_: int):
 
         kwargs = {'lang': mapping.lang, 'is_query': True}
 
@@ -44,13 +45,15 @@ class TextField(FieldOpBase):
                 es_query = {
                     "_source": False,
                     "query": query,
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
             else:
                 es_query = {
                     "_source": False,
                     "query": {"bool": {"must": query, "filter": json_filter}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
         else:
             pipe = Pipeline(mapping.q_processor)
@@ -59,12 +62,14 @@ class TextField(FieldOpBase):
                 es_query = {
                     "_source": False,
                     "query": {"match": {key: value}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
             else:
                 es_query = {
                     "_source": False,
                     "query": {"bool": {"must": {"match": {key: value}}, "filter": json_filter}},
-                    "size": top_k
+                    "size": top_k,
+                    "from": from_
                 }
         return es_query
