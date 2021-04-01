@@ -1,22 +1,21 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from starlette.requests import Request
 from r2base.http.schemas.payload import WriteDocBody, WriteIndexBody
-from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList, ScrollRead
+from r2base.http.schemas.response import DocWrite, DocRead, IndexWrite, IndexRead, MappingRead, IndexList
 from r2base.engine.indexer import Indexer
-from typing import Union, Optional
 import time
 
 router = APIRouter()
 
 
-@router.get("/list", response_model=IndexList, name="Get a list of index names")
-async def post_predict(request: Request) -> IndexList:
+@router.get("/list", response_model=IndexList, name="Get Index List")
+async def list_index(request: Request) -> IndexList:
     indexer: Indexer = request.app.state.indexer
     return IndexList(indexes=indexer.list())
 
 
 @router.post("/{index_id}", response_model=IndexWrite, name="Create Index", status_code=status.HTTP_201_CREATED)
-async def post_predict(
+async def make_index(
         request: Request,
         index_id: str,
         body: WriteIndexBody = None
@@ -26,8 +25,8 @@ async def post_predict(
     return IndexWrite(index=index_id, action='created')
 
 
-@router.delete("/{index_id}", response_model=IndexWrite, name="Delete Index")
-async def post_predict(
+@router.delete("/{index_id}", response_model=IndexWrite, name="Delete index")
+async def delete_index(
         request: Request,
         index_id: str
 ) -> IndexWrite:
@@ -38,7 +37,7 @@ async def post_predict(
 
 
 @router.get("/{index_id}", response_model=IndexRead, name="Get Index Info")
-async def post_predict(
+async def get_index_info(
         request: Request,
         index_id: str
 ) -> IndexRead:
@@ -47,7 +46,7 @@ async def post_predict(
 
 
 @router.get("/{index_id}/mappings", response_model=MappingRead, name="Get Mapping")
-async def post_predict(
+async def get_mapping(
         request: Request,
         index_id: str
 ) -> MappingRead:
@@ -55,20 +54,8 @@ async def post_predict(
     return MappingRead(index=index_id, mappings=indexer.get_mapping(index_id))
 
 
-@router.get("/{index_id}/scroll", response_model=ScrollRead, name="Scroll documents")
-async def scroll(
-        request: Request,
-        index_id: str,
-        limit: int,
-        last_key: Optional[int]=None,
-) -> ScrollRead:
-    indexer: Indexer = request.app.state.indexer
-    docs, new_last_key = indexer.scroll_docs(index_id, limit, last_key)
-    return ScrollRead(docs=docs, last_key=new_last_key)
-
-
 @router.post("/{index_id}/docs", response_model=DocWrite, name="Add documents", status_code=status.HTTP_201_CREATED)
-async def post_predict(
+async def add_docs(
         request: Request,
         index_id: str,
         block_data: WriteDocBody = None
@@ -80,7 +67,7 @@ async def post_predict(
 
 
 @router.put("/{index_id}/docs", response_model=DocWrite, name="Update documents")
-async def post_predict(
+async def update_docs(
         request: Request,
         index_id: str,
         body: WriteDocBody = None
@@ -92,7 +79,7 @@ async def post_predict(
 
 
 @router.delete("/{index_id}/docs/{doc_ids}", response_model=DocWrite, name="Delete documents")
-async def post_predict(
+async def delete_docs(
         request: Request,
         index_id: str,
         doc_ids: str,
@@ -103,14 +90,13 @@ async def post_predict(
         doc_ids = doc_ids.split(',')
     else:
         doc_ids = [doc_ids]
-    doc_ids = [int(x) for x in doc_ids]
-    indexer.delete_docs(index_id, doc_ids)
-    resp = DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='deleted')
+    res = indexer.delete_docs(index_id, doc_ids)
+    resp = DocWrite(took=time.time() - s_time, doc_ids=doc_ids, action='deleted', msg=res)
     return resp
 
 
 @router.get("/{index_id}/docs/{doc_ids}", response_model=DocRead, name="Read documents")
-async def post_predict(
+async def read_docs(
         request: Request,
         index_id: str,
         doc_ids: str,
@@ -120,10 +106,10 @@ async def post_predict(
     else:
         doc_ids = [doc_ids]
 
-    doc_ids = [int(x) for x in doc_ids]
     indexer: Indexer = request.app.state.indexer
     docs = indexer.read_docs(index_id, doc_ids)
     resp = DocRead(docs=docs)
     return resp
+
 
 

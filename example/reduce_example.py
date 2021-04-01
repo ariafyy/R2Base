@@ -1,41 +1,11 @@
-import requests
-import os
+from r2base.engine.indexer import Indexer
+from r2base.engine.ranker import Ranker
 import numpy as np
-
-host_url = "http://localhost:8000"
-
-
-def delete_index(index_id):
-    res = requests.delete(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)))
-    if res.status_code > 300:
-        raise Exception(res.json())
-
-
-def make_index(index_id, mapping):
-    res = requests.post(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)),
-                        json={'mappings': mapping})
-    if res.status_code > 300:
-        raise Exception(res.json())
-    return res.json()
-
-
-def add_docs(index_id, docs):
-    res = requests.post(url=os.path.join(host_url, 'r2base/v1/index/{}/docs'.format(index_id)),
-                        json={'docs': docs, 'batch_siz': 100})
-    if res.status_code > 300:
-        raise Exception(res.json())
-    return res.json()
-
-
-def search(index_id, query):
-    res = requests.post(url=os.path.join(host_url, 'r2base/v1/search/{}/query'.format(index_id)),
-                        json={'query': query})
-    if res.status_code > 300:
-        raise Exception(res.json())
-    return res.json()
 
 
 if __name__ == "__main__":
+    indexer = Indexer()
+    ranker = Ranker()
     num_dim = 100
     mapping = {
         'doc_id': {'type': 'keyword'},
@@ -47,14 +17,13 @@ if __name__ == "__main__":
     for i in range(n):
         docs.append({'doc_id': str(i), 'v': np.random.random(num_dim).tolist()})
 
-    delete_index(index)
-    make_index(index, mapping)
-    add_docs(index, docs)
+    indexer.delete_index(index)
+    indexer.create_index(index, mapping)
+    indexer.add_docs(index, docs)
     import time
     time.sleep(2)
     query = {
         'match': {},
-        "exclude": ['v'],
         'reduce': {
             'small_v': {
                 'method': "umap",
@@ -65,11 +34,10 @@ if __name__ == "__main__":
             }
         }
     }
-    print(search(index, query))
+    print(ranker.query(index, query))
 
     query = {
         'match': {},
-        "exclude": ['v'],
         'reduce': {
             'small_v': [
                 {
@@ -88,7 +56,7 @@ if __name__ == "__main__":
             ]
         }
     }
-    print(search(index, query))
+    print(ranker.query(index, query))
 
 
 

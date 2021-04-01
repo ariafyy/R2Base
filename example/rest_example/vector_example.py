@@ -2,7 +2,7 @@ import requests
 import os
 
 
-host_url = "http://localhost:5678"
+host_url = "http://localhost:8000"
 
 
 def delete_index(index_id):

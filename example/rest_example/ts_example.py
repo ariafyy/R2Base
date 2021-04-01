@@ -3,6 +3,7 @@ import os
 
 host_url = "http://localhost:8000"
 
+
 def delete_index(index_id):
     requests.delete(url=os.path.join(host_url, 'r2base/v1/index/{}'.format(index_id)))
 
