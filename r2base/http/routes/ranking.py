@@ -3,6 +3,7 @@ from starlette.requests import Request
 from r2base.http.schemas.payload import SearchBody
 from r2base.http.schemas.response import Search, ScrollSearch, DocQueryWrite
 from r2base.engine.ranker import Ranker
+from r2base.engine.reader import Reader
 import time
 
 router = APIRouter()
@@ -16,8 +17,10 @@ async def query(
 ) -> Search:
     s_time = time.time()
     ranker: Ranker = request.app.state.ranker
-    res = ranker.query(index_id, body.query)
-    resp = Search(took=time.time() - s_time, ranks=res, reads=[])
+    docs = ranker.query(index_id, body.query)
+    reader: Reader = request.app.state.reader
+    ans = reader.read(body.query, docs)
+    resp = Search(took=time.time() - s_time, ranks=docs, reads=ans)
     return resp
 
 
@@ -29,8 +32,8 @@ async def scroll_query(
 ) -> ScrollSearch:
     s_time = time.time()
     ranker: Ranker = request.app.state.ranker
-    res, last_id = ranker.scroll_query(index_id, body.query)
-    resp = ScrollSearch(took=time.time() - s_time, docs=res, last_id=last_id)
+    docs, last_id = ranker.scroll_query(index_id, body.query)
+    resp = ScrollSearch(took=time.time() - s_time, docs=docs, last_id=last_id)
     return resp
 
 

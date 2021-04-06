@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from r2base.engine.indexer import Indexer
 from r2base.engine.ranker import Ranker
+from r2base.engine.reader import Reader
 import logging
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ def start_app_handler(app: FastAPI) -> Callable:
         logger.info("Running app start handler.")
         app.state.ranker = Ranker()
         app.state.indexer = Indexer()
+        app.state.reader = Reader()
 
     return startup
 
@@ -21,6 +23,7 @@ def stop_app_handler(app: FastAPI) -> Callable:
         logger.info("Running app shutdown handler.")
         app.state.ranker = None
         app.state.indexer = None
+        app.state.reader = None
 
     return shutdown
 

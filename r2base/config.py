@@ -33,6 +33,8 @@ class EnvVar(object):
     S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY", '')
     S3_ENGINE = os.environ.get("S3_ENGINE", 's3')
 
+    MRC_URL = os.environ.get("MRC_URL", "http://localhost:7000/v1/query")
+
 
     @classmethod
     def deepcopy(cls, x):
