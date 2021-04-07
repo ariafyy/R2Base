@@ -179,7 +179,7 @@ class EsBaseIndex(IndexBase):
             src = h['_source']
             src = self._deraw_src(src)
             docs.append(src)
-        return docs
+        return sorted(docs, key=lambda x:doc_ids.index(x['_uid']))
 
     def size(self) -> int:
         if not self.es.indices.exists(index=self.index_id):
