@@ -1,12 +1,13 @@
 version: '2.3'
 services:
   r2base:
-    image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base:0.3-dev
+    image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base:0.4-only-es
     container_name: r2base
     ports:
       - 8000:8000
     environment:
       - ES_URL=es01:9200
+      - REDIS_URL=redis://:Hzlh2020@localhost:6379/0
     networks:
       - r2base
     volumes:

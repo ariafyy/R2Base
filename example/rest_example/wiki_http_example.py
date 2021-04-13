@@ -44,14 +44,15 @@ def wiki2doc(l):
 
 
 if __name__ == "__main__":
-    path = "data/tiny_wiki.jsonl"
+    path = "../data/tiny_wiki.jsonl"
 
     mapping = {
         'title': {'type': 'keyword'},
         'text': {'type': 'text',
                  'lang': 'en',
                  'index': 'bm25'
-                 }
+                 },
+        'seed': {'type': 'object'}
     }
     docs = []
     chunk_size = 10

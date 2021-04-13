@@ -1,38 +1,68 @@
-# R2Base: Vector Engine
+# R2Base: a Vector Database
+R2Base enables one to easily rank and reduce (dimension reduction and clustering) of high-dimensional dense/sparse vectors.
 
-### What is R2Base (Rank & Reducing Base)?
-R2Base is a vector database for ranking, reducing millions of dense (sparse) vectors.
-
-### Examples
-Checkout
-    query_tty.py
-    wiki_example.py
+### Install & Run
+    # install dependencies
+    pip install -r requirements.txt
     
-### Run Server
-    uvicorn r2base.http.server:app --host 0.0.0.0 --workers 4
-
-### Dependencies
-    Most of the time, you need to run Elasticsearch as backend for production usage.
-
-### Run for Development
+    # run ES
     docker pull docker.elastic.co/elasticsearch/elasticsearch:7.10.1
     docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.1
+    
+    # run API
     uvicorn r2base.http.server:app --host 0.0.0.0 --workers 4
+   
+Or you can use docker-compose:
+    
+    # CPU Mode
+    docker-compose -f docker-compose.yml up -d
+    
+    # GPU mode
+    docker-compose -f docker-compose-gpu.yml up -d
 
-### Live Docs
+### Build Index
+#### Support types
+- datetime
+- int
+- float
+- text
+- vector
+- term_score
+
+
+### Query Index
+#### Basic Usage
+- match one or more field
+
+        {
+            "query": {"match": {field": "value"}}
+        }
+- filter one or more field
+
+        {
+            "query": {"filter": "field=A OR field < B"}
+        }
+- combine match and filter
+
+        {
+            "query": {
+                "match": {"field": "value"},
+                "filter": "field=A OR field < B"
+            }
+        }
+
+#### Advanced Usage
+
+- match with threshold
+- match text with advanced ES query
+- scroll with query
+
+### Examples
+    Checkout examples/
+    
+### Live Documentation
     http://localhost:8000/docs
 
-### TODO
-- Support reader 
-- Use ONNX instead of PyTorch for models 
-- Improve stabtility 
-- Use faster BERT tokenizer 
-- Support basic operations, e.g. CRUD, filters etc [DONE]
-- Support native SPARTA in Tantivy [DONE]
-- Support vector search using FASISS [DONE]
-- Add better RESTful APIs [DONE]
-- Package as Docker image [DONE]
-- Support BM25 for CJK languages [DONE for Chinese]
     
  
 

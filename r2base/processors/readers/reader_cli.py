@@ -1,5 +1,5 @@
 from r2base.processors.bases import ProcessorBase
 
 
-class TransformerEncoders(ProcessorBase):
+class ReaderClient(ProcessorBase):
     pass

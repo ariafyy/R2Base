@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 
 
 class Search(BaseModel):
@@ -8,19 +8,27 @@ class Search(BaseModel):
     reads: List = []
 
 
+class ScrollSearch(BaseModel):
+    took: int
+    docs: List = []
+    last_id: Union[List, None]
+
+
 class DocWrite(BaseModel):
     took: int
-    doc_ids: List[int]
+    doc_ids: List[str]
     action: str
+    msg: Any=None
+
+
+class DocQueryWrite(BaseModel):
+    took : int
+    action: str
+    msg: Any
 
 
 class DocRead(BaseModel):
     docs: Union[List, Dict, None]
-
-
-class ScrollRead(BaseModel):
-    docs: List
-    last_key: int
 
 
 class IndexWrite(BaseModel):
