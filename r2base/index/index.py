@@ -143,6 +143,7 @@ class Index(object):
         """
         q_match = q.get('match', {})
         q_filter = q.get('filter', None)
+        adv_match = q.get('adv_match', {})
         q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
         exclude = q.get('exclude', None)
@@ -159,7 +160,14 @@ class Index(object):
             reduce_include = None
 
         # do ranking
-        docs = self.rank_index.rank(q_match, q_filter, top_k, include, exclude, reduce_include, from_)
+        docs = self.rank_index.rank(match=q_match,
+                                    sql_filter=q_filter,
+                                    top_k=top_k,
+                                    adv_match=adv_match,
+                                    includes=include,
+                                    excludes=exclude,
+                                    reduce_includes=reduce_include,
+                                    from_=from_)
 
         # do reducing
         if q_reduce is not None and q_reduce:
