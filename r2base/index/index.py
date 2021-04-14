@@ -142,8 +142,8 @@ class Index(object):
         :return:
         """
         q_match = q.get('match', {})
-        q_filter = q.get('filter', None)
         adv_match = q.get('adv_match', {})
+        q_filter = q.get('filter', None)
         q_reduce = q.get('reduce', {})
         top_k = q.get('size', 10)
         exclude = q.get('exclude', None)
@@ -189,10 +189,14 @@ class Index(object):
         if batch_size <= 0:
             return [], None
 
-        docs, last_id = self.rank_index.scroll(q_match, q_filter, batch_size,
+        docs, last_id = self.rank_index.scroll(match=q_match,
+                                               sql_filter=q_filter,
+                                               batch_size=batch_size,
                                                adv_match=adv_match,
-                                               includes=include, excludes=exclude,
-                                               sort=sort_index, search_after=search_after)
+                                               includes=include,
+                                               excludes=exclude,
+                                               sort=sort_index,
+                                               search_after=search_after)
 
         return docs, last_id
 
