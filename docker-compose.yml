@@ -11,6 +11,7 @@ services:
     networks:
       - r2base
     volumes:
+      - ./resources:/app/resources
       - data:/app/_index
 
   es01:
