@@ -38,17 +38,19 @@ if __name__ == "__main__":
     path = "data/tiny_wiki.jsonl"
     indexer = Indexer()
     ranker = Ranker()
+    print(indexer.list())
 
     mapping = {
         'title': {'type': 'keyword'},
         'text': {'type': 'text',
                  'lang': 'en',
                  'index': 'bm25'
-                 }
+                 },
+        'seed': {'type': 'object'}
     }
     docs = []
     chunk_size = 100
-    index = 'wiki-es'
+    index = 'wiki_es'
     indexer.delete_index(index)
     indexer.create_index(index, mapping)
     cnt = 0
