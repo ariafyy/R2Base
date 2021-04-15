@@ -11,7 +11,7 @@ class Reader(EngineBase):
 
     def read(self, q: Dict, docs: List):
         q_read = q.get("read", {})
-        if not q_read:
+        if not q_read or not docs:
             return []
 
         model_id = q_read['model_id']
