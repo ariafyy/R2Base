@@ -215,7 +215,7 @@ class EsIndex(EsBaseIndex):
 
                 src = h['_source']
                 if "highlight" in h:
-                    src['highlight'] = h["highlight"]
+                    src['es_highlight'] = h["highlight"]
 
                 src = self._deraw_src(src)
 
