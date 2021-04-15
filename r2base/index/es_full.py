@@ -214,6 +214,9 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 src = h['_source']
+                if "highlight" in h:
+                    src['highlight'] = h["highlight"]
+
                 src = self._deraw_src(src)
 
                 doc_id = src[FT.ID]
