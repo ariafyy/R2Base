@@ -148,6 +148,7 @@ class Index(object):
         top_k = q.get('size', 10)
         exclude = q.get('exclude', None)
         include = q.get('include', None)
+        highlight = q.get('highlight', None)
         from_ = q.get('from', 0)
 
         if top_k <= 0:
@@ -160,6 +161,7 @@ class Index(object):
             reduce_include = None
 
         # do ranking
+
         docs = self.rank_index.rank(match=q_match,
                                     sql_filter=q_filter,
                                     top_k=top_k,

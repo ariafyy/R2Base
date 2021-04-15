@@ -191,7 +191,7 @@ class EsIndex(EsBaseIndex):
             ths.append(threshold)
 
             if mapping.type in FT.MATCH_TYPES:
-                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter, from_)
+                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter, from_, highlight)
                 es_query['_source'] = src_filter
                 keys.append(field)
                 es_qs.append({'index': self.index_id})
@@ -212,6 +212,9 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 src = h['_source']
+                if "highlight" in h:
+                    src['es_highlight'] = h["highlight"]
+
                 src = self._deraw_src(src)
 
                 doc_id = src[FT.ID]
@@ -252,7 +255,8 @@ class EsIndex(EsBaseIndex):
              includes: Optional[List] = None,
              excludes: Optional[List] = None,
              reduce_includes: Optional[List] = None, 
-             from_: int = 0) -> List[Dict]:
+             from_: int = 0,
+             highlight: Optional[Dict] = None) -> List[Dict]:
 
         # convert string filter to JSON
         json_filter = self._sql2json(sql_filter)
