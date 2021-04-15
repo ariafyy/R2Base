@@ -10,6 +10,9 @@ class Reader(EngineBase):
     logger = logging.getLogger(__name__)
 
     def read(self, q: Dict, docs: List):
+        if not "read" in q:
+            return []
+
         q_read = q.get("read", {})
         model_id = q_read['model_id']
         field = q_read['field']
