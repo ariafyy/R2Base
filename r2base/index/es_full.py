@@ -175,7 +175,7 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None, reduce_includes=None, from_=0):
+    def _query(self, match: dict, json_filter, top_k: int, includes=None, excludes=None, reduce_includes=None, from_=0, highlight=None):
         es_qs = []
         keys = []
         ths = []
@@ -193,7 +193,7 @@ class EsIndex(EsBaseIndex):
             ths.append(threshold)
 
             if mapping.type in FT.MATCH_TYPES:
-                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter, from_)
+                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter, from_, highlight)
                 es_query['_source'] = src_filter
                 keys.append(field)
                 es_qs.append({'index': self.index_id})
@@ -234,7 +234,8 @@ class EsIndex(EsBaseIndex):
              includes: Optional[List] = None,
              excludes: Optional[List] = None,
              reduce_includes: Optional[List] = None, 
-             from_: int = 0) -> List[Dict]:
+             from_: int = 0,
+             highlight: Optional[Dict] = None) -> List[Dict]:
 
         if sql_filter is not None and sql_filter:
             json_filter = self._sql2json(sql_filter)
@@ -242,7 +243,7 @@ class EsIndex(EsBaseIndex):
             json_filter = None
 
         if match and len(match) > 0:
-            docs = self._query(match, json_filter, top_k, includes, excludes, reduce_includes, from_)
+            docs = self._query(match, json_filter, top_k, includes, excludes, reduce_includes, from_,highlight)
         else:
             docs = self._empty_query(json_filter, top_k, includes, excludes, reduce_includes, from_)
 
