@@ -111,6 +111,9 @@ class EsBaseIndex(IndexBase):
             self.logger.info("Index {} is created".format(index_id))
 
     def _sql2json(self, sql_filter: str):
+        if sql_filter is None or not sql_filter:
+            return None
+
         sql_filter = 'SELECT * FROM "{}" WHERE {}'.format(self.index_id, sql_filter)
         res = self.es.sql.translate(body={'query': sql_filter})
         return res['query']
