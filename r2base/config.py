@@ -33,7 +33,7 @@ class EnvVar(object):
     S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY", '')
     S3_ENGINE = os.environ.get("S3_ENGINE", 's3')
 
-    MRC_URL = os.environ.get("MRC_URL", "http://quad-0.tepper.cmu.edu:30007/v1/query")
+    MRC_URL = os.environ.get("MRC_URL", "http://localhost:7000/v1/query")
 
 
     @classmethod
