@@ -36,7 +36,7 @@ class TextField(FieldOpBase):
     @classmethod
     def to_query_body(cls, key: str, mapping: TextMapping, query: str, top_k: int,
                       json_filter: Optional[Dict],
-                      from_: int, highlight: Optional[Dict]):
+                      from_: int):
 
         kwargs = {'lang': mapping.lang, 'is_query': True}
 
@@ -72,7 +72,5 @@ class TextField(FieldOpBase):
                     "size": top_k,
                     "from": from_
                 }
-        if highlight:
-            es_query["highlight"] = highlight
-        print (es_query)
+
         return es_query

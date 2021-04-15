@@ -16,6 +16,7 @@ if __name__ == "__main__":
             filter = None
 
         res = ranker.query(index, {'match': {'text': q},
+                                   'highlight': {'fields': {'text': { "pre_tags" : ["<em>"], "post_tags" : ["</em>"] }}},
                                    'filter': filter,
                                    'size': 5})
 

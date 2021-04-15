@@ -16,6 +16,5 @@ class ObjectField(FieldOpBase):
         return value
 
     @classmethod
-    def to_query_body(cls, key: str, mapping: BasicMapping, query: str, top_k: int,
-                      json_filter: Optional[Dict]):
+    def to_query_body(cls, *args, **kwargs):
         return None

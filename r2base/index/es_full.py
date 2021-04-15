@@ -147,6 +147,14 @@ class EsIndex(EsBaseIndex):
         else:
             return {'includes': includes + reduce_includes, 'excludes': excludes}
 
+    def _hit2doc(self, hit, score):
+        src = hit['_source']
+        src = self._deraw_src(src)
+        doc = {'_source': src, 'score': score}
+        if "highlight" in hit:
+            doc['highlight'] = hit["highlight"]
+        return doc
+
     def _empty_query(self, json_filter, top_k, src_filter, from_=0):
 
         if json_filter is None:
@@ -174,7 +182,7 @@ class EsIndex(EsBaseIndex):
 
         return docs
 
-    def _query(self, match: dict, json_filter, top_k: int, src_filter, from_=0):
+    def _query(self, match: dict, json_filter, top_k: int, src_filter, from_=0, highlight=None):
         es_qs = []
         keys = []
         ths = []
@@ -191,7 +199,12 @@ class EsIndex(EsBaseIndex):
             ths.append(threshold)
 
             if mapping.type in FT.MATCH_TYPES:
-                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value, top_k, json_filter, from_, highlight)
+                es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value,
+                                                                          top_k, json_filter,
+                                                                          from_)
+                if mapping.type == FT.TEXT and highlight:
+                    es_query["highlight"] = highlight
+
                 es_query['_source'] = src_filter
                 keys.append(field)
                 es_qs.append({'index': self.index_id})
@@ -199,7 +212,8 @@ class EsIndex(EsBaseIndex):
 
         m_res = self.es.msearch(body=es_qs)
         id2score = {}
-        id2src = {}
+        id2data = {}
+
         for k_id, key in enumerate(keys):
             mapping = self.mappings[key]
             threshold = ths[k_id]
@@ -211,26 +225,23 @@ class EsIndex(EsBaseIndex):
                 if threshold is not None and score < threshold:
                     continue
 
-                src = h['_source']
-                if "highlight" in h:
-                    src['es_highlight'] = h["highlight"]
-
-                src = self._deraw_src(src)
-
-                doc_id = src[FT.ID]
-                id2src[doc_id] = src
+                doc_id = h['_source'][FT.ID]
+                id2data[doc_id] = self._hit2doc(h, score)
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
 
         idrank = [(doc_id, score) for doc_id, score in id2score.items()]
         idrank = sorted(idrank, key=lambda x: x[1], reverse=True)[0:top_k]
         docs = []
         for doc_id, score in idrank:
-            docs.append({"_source": id2src[doc_id], 'score': score})
+            docs.append(id2data[doc_id])
 
         return docs
 
-    def _adv_query(self, adv_query: Dict, json_filter: Dict, top_k: int, src_filter: Dict, from_=0):
+    def _adv_query(self, adv_query: Dict, json_filter: Dict, top_k: int, src_filter: Dict, from_=0, highlight=None):
         es_query = {"_source": src_filter, "size": top_k, "from": from_}
+
+        if highlight:
+            es_query['highlight'] = highlight
 
         if json_filter is None:
             es_query['query'] = adv_query
@@ -242,9 +253,7 @@ class EsIndex(EsBaseIndex):
         docs = []
         for h in res['hits']['hits']:
             score = h.get('_score', 0.0) if h['_score'] else 0.0
-            src = h['_source']
-            src = self._deraw_src(src)
-            docs.append({'score': score, '_source': src})
+            docs.append(self._hit2doc(h, score))
 
         return docs
 
@@ -265,10 +274,10 @@ class EsIndex(EsBaseIndex):
         src_filter = self._get_src_filters(includes, excludes, reduce_includes)
 
         if adv_match and len(adv_match) > 0:
-            docs = self._adv_query(adv_match, json_filter, top_k, src_filter, from_)
+            docs = self._adv_query(adv_match, json_filter, top_k, src_filter, from_, highlight)
 
         elif match and len(match) > 0:
-            docs = self._query(match, json_filter, top_k, src_filter, from_)
+            docs = self._query(match, json_filter, top_k, src_filter, from_, highlight)
 
         else:
             docs = self._empty_query(json_filter, top_k, src_filter, from_)

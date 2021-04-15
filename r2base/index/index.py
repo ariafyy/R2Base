@@ -169,7 +169,8 @@ class Index(object):
                                     includes=include,
                                     excludes=exclude,
                                     reduce_includes=reduce_include,
-                                    from_=from_)
+                                    from_=from_,
+                                    highlight=highlight)
 
         # do reducing
         if q_reduce is not None and q_reduce:
