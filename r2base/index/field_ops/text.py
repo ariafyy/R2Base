@@ -46,7 +46,7 @@ class TextField(FieldOpBase):
                     "_source": False,
                     "query": query,
                     "size": top_k,
-                    "from": from_
+                    "from": from_,
                 }
             else:
                 es_query = {
@@ -72,4 +72,5 @@ class TextField(FieldOpBase):
                     "size": top_k,
                     "from": from_
                 }
+
         return es_query

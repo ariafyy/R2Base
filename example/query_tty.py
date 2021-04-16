@@ -1,7 +1,9 @@
 from r2base.engine.ranker import Ranker
+from r2base.engine.reader import Reader
 
 if __name__ == "__main__":
     ranker = Ranker()
+    reader = Reader()
     index = 'wiki-zh'
 
     while True:
@@ -14,8 +16,15 @@ if __name__ == "__main__":
             filter = None
 
         res = ranker.query(index, {'match': {'text': q},
+                                   'highlight': {'fields': {'text': { "pre_tags" : ["<em>"], "post_tags" : ["</em>"] }}},
                                    'filter': filter,
                                    'size': 5})
+
+        r_q = { 'read': {'field': 'text', 'query': q, 'top_k': 10,
+                         'model_id': "distil-roberta-wwm-ext-cmrc+drcd-T4tiny",
+                         'model_url': 'https://zk-api.linker.cc/predictor/v1/mrc'}}
+
+        ress = reader.read(r_q, res)
         print('{} results'.format(len(res)))
         if len(res) > 0:
             print(res[0]['score'], res[0]['_source']['title'], res[0]['_source'])
