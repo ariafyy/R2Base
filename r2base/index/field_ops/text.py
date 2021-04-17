@@ -21,9 +21,11 @@ class TextField(FieldOpBase):
 
     @classmethod
     def to_mapping(cls, mapping: TextMapping):
-        if cls._use_tokens(mapping):
-            cls.logger.info("Detected customized tokenizer. Using cutter_analyzer")
-            return {'type': 'text', "analyzer": "cutter_analyzer"}
+        #if cls._use_tokens(mapping):
+        #    cls.logger.info("Detected customized tokenizer. Using cutter_analyzer")
+        #    return {'type': 'text', "analyzer": "cutter_analyzer"}
+        if mapping.lang == 'zh':
+            return {'type': 'text', "analyzer": "zh_index_analyzer", "search_analyzer": "zh_search_analyzer"}
         else:
             return {'type': 'text'}
 
