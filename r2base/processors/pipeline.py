@@ -7,7 +7,7 @@ import logging
 class Pipeline(object):
 
     def __init__(self, processors):
-        self.processors = processors.split(';')
+        self.processors = processors.split(';') if type(processors) is str else []
 
     def run(self, data, **kwargs):
         res = data

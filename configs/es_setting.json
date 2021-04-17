@@ -13,8 +13,28 @@
     "analyzer": {
       "cutter_analyzer": {
         "tokenizer": "cutter_tokenizer"
+      },
+      "zh_index_analyzer": {
+          "tokenizer": "jieba_index",
+          "filter": [
+            "lowercase",
+            "jieba_stop"
+          ]
+      },
+      "zh_search_analyzer": {
+        "tokenizer": "jieba_search",
+        "filter": [
+          "lowercase",
+          "jieba_stop"
+        ]
       }
-    }
+    },
+    "filter": {
+        "jieba_stop": {
+          "type":        "stop",
+          "stopwords_path": "stopwords/stopwords.txt"
+        }
+      }
   },
   "similarity": {
     "tf_alone": {

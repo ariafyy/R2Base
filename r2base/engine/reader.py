@@ -26,7 +26,7 @@ class Reader(EngineBase):
             raise Exception("Query {} is empty".format(query))
 
         body = {
-            "data": [{'q': query, 'doc': d['_source'][field]} for d in docs[0:top_k]],
+            "data": [{'q': query, 'doc': d['_source'][field][0:500]} for d in docs[0:top_k]],
             "model_id": model_id,
             "params": params
         }

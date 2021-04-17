@@ -16,11 +16,11 @@ if __name__ == "__main__":
             filter = None
 
         res = ranker.query(index, {'match': {'text': q},
-                                   'highlight': {'fields': {'text': { "pre_tags" : ["<em>"], "post_tags" : ["</em>"] }}},
+                                   'highlight': {'fields': {'text': { "pre_tags" : ["<b>"], "post_tags" : ["</b>"] }}},
                                    'filter': filter,
                                    'size': 5})
 
-        r_q = { 'read': {'field': 'text', 'query': q, 'top_k': 10,
+        r_q = {'read': {'field': 'text', 'query': q, 'top_k': 10,
                          'model_id': "distil-roberta-wwm-ext-cmrc+drcd-T4tiny",
                          'model_url': 'https://zk-api.linker.cc/predictor/v1/mrc'}}
 
@@ -30,3 +30,5 @@ if __name__ == "__main__":
             print(res[0]['score'], res[0]['_source']['title'], res[0]['_source'])
         else:
             print("No result")
+
+        print(ress)
