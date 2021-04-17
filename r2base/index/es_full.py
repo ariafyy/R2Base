@@ -147,7 +147,7 @@ class EsIndex(EsBaseIndex):
         else:
             return {'includes': includes + reduce_includes, 'excludes': excludes}
 
-    def _hit2doc(self, hit, score):
+    def _hit2doc(self, hit, score) -> Dict:
         src = hit['_source']
         src = self._deraw_src(src)
         doc = {'_source': src, 'score': score}
@@ -226,7 +226,15 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 doc_id = h['_source'][FT.ID]
-                id2data[doc_id] = self._hit2doc(h, score)
+                if doc_id not in id2data:
+                    id2data[doc_id] = self._hit2doc(h, score)
+                else:
+                    temp = self._hit2doc(h, score).get('highlight')
+                    if temp:
+                        prev = id2data[doc_id].get('highlight', {})
+                        prev.update(**temp)
+                        id2data[doc_id]['highlight'] = prev
+
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
 
         idrank = [(doc_id, score) for doc_id, score in id2score.items()]

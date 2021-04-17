@@ -19,10 +19,8 @@ if __name__ == "__main__":
     ranker = Ranker()
 
     mapping = {
-        'title': {'type': 'keyword'},
-        'text': {'type': 'text',
-                 'lang': 'zh',
-                 'index': 'bm25'
+        'title': {'type': 'text', 'lang': 'zh', 'index': 'bm25'},
+        'text': {'type': 'text', 'lang': 'zh', 'index': 'bm25'
                  },
         'seed': {'type': 'object'},
         '_meta': {"type": "meta",
