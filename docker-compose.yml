@@ -90,7 +90,7 @@ services:
       - r2base
 
   wait_until_ready:
-    image: r2base-es:7.10.1
+    image: registry.cn-hangzhou.aliyuncs.com/soco-images/r2base-es:7.10.1
     command: /usr/bin/true
     depends_on: {"es01": {"condition": "service_healthy"}}
 
