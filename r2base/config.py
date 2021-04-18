@@ -35,6 +35,8 @@ class EnvVar(object):
 
     MRC_URL = os.environ.get("MRC_URL", "http://localhost:7000/v1/query")
 
+    AQE_URL = os.environ.get("AQE_URL", "http://localhost:7010/aqe/v1/predict/nearby")
+    AQE_POS = os.environ.get("AQE_POS", "n,v,vd,vn,a,ad,an,d")
 
     @classmethod
     def deepcopy(cls, x):

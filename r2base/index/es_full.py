@@ -2,6 +2,7 @@ from r2base import IndexType as IT
 from r2base import FieldType as FT
 from r2base.index.index_bases import EsBaseIndex
 from r2base.config import EnvVar
+from r2base.index.aqe_client import AqeClient
 from r2base.index.field_ops.text import TextField
 from r2base.index.field_ops.iv import InvertedField
 from r2base.index.field_ops.vector import VectorField
@@ -9,7 +10,6 @@ from r2base.index.field_ops.filter import FilterField
 from r2base.index.field_ops.object import ObjectField
 from r2base.mappings import BasicMapping
 from typing import List, Union, Dict, Optional
-
 
 class EsIndex(EsBaseIndex):
     type = IT.RANK
@@ -155,6 +155,19 @@ class EsIndex(EsBaseIndex):
             doc['highlight'] = hit["highlight"]
         return doc
 
+    def _parse_match_clause(self, mapping, value):
+        if type(value) is dict:
+            threshold = value.get('threshold', None)
+            query = value['value']
+            if mapping.type == FT.TEXT and 'age' in value:
+                aqe = value['aqe']
+                query = AqeClient.expand(aqe, query, mapping.lang)
+        else:
+            query = value
+            threshold = None
+
+        return query, threshold
+
     def _empty_query(self, json_filter, top_k, src_filter, from_=0):
 
         if json_filter is None:
@@ -189,13 +202,7 @@ class EsIndex(EsBaseIndex):
 
         for field, value in match.items():
             mapping = self.mappings[field]
-
-            if type(value) is dict:
-                threshold = value.get('threshold', None)
-                value = value['value']
-            else:
-                threshold = None
-
+            value, threshold = self._parse_match_clause(mapping, value)
             ths.append(threshold)
 
             if mapping.type in FT.MATCH_TYPES:

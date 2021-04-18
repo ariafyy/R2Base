@@ -1,0 +1,4 @@
+requests >= 2.25.0
+fastapi>=0.61.0
+uvicorn>=0.11.1
+synonyms==3.16.0
