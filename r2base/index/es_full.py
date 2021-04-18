@@ -159,7 +159,7 @@ class EsIndex(EsBaseIndex):
         if type(value) is dict:
             threshold = value.get('threshold', None)
             query = value['value']
-            if mapping.type == FT.TEXT and 'age' in value:
+            if mapping.type == FT.TEXT and 'aqe' in value:
                 aqe = value['aqe']
                 query = AqeClient.expand(aqe, query, mapping.lang)
         else:
