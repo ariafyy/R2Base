@@ -1,6 +1,5 @@
 from r2base.engine.ranker import Ranker
 from r2base.engine.reader import Reader
-
 if __name__ == "__main__":
     ranker = Ranker()
     reader = Reader()
@@ -15,7 +14,8 @@ if __name__ == "__main__":
             q = query
             filter = None
 
-        res = ranker.query(index, {'match': {'text': q, 'title': q},
+
+        res = ranker.query(index, {'match': {'text': {'value': q, 'aqe': {}}, 'title': q},
                                    'highlight': {'fields': {'text': {}, 'title': {}}},
                                    'filter': filter,
                                    'size': 5})

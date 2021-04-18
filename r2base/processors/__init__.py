@@ -19,7 +19,6 @@ processor_map = {
     'tf_tokenize': TransformerTokenizer(),
     'lower': LowerCase(),
     'remove_num': NoNumber(),
-    'onnx_encode': None,
     'umap': UMAPReducer(),
     'pca': PCAReducer()
 }

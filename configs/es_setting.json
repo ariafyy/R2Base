@@ -18,14 +18,18 @@
           "tokenizer": "jieba_index",
           "filter": [
             "lowercase",
-            "jieba_stop"
+            "jieba_stop",
+            "trim",
+            "remove_empty"
           ]
       },
       "zh_search_analyzer": {
         "tokenizer": "jieba_search",
         "filter": [
           "lowercase",
-          "jieba_stop"
+          "jieba_stop",
+          "trim",
+          "remove_empty"
         ]
       }
     },
@@ -33,6 +37,10 @@
         "jieba_stop": {
           "type":        "stop",
           "stopwords_path": "stopwords/stopwords.txt"
+        },
+        "remove_empty": {
+            "type": "stop",
+            "stopwords": [""]
         }
       }
   },
