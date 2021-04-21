@@ -3,7 +3,7 @@ from r2base.engine.reader import Reader
 if __name__ == "__main__":
     ranker = Ranker()
     reader = Reader()
-    index = 'wiki-zh'
+    index = 'new-media'
 
     while True:
         query = input("Type a query:\n")
@@ -15,7 +15,7 @@ if __name__ == "__main__":
             filter = None
 
 
-        res = ranker.query(index, {'match': {'text': {'value': q, 'aqe': {}}, 'title': q},
+        res = ranker.query(index, {'match': {'text': {'value': q, 'aqe': {}, "minimum_should_match": "75%"}},
                                    'highlight': {'fields': {'text': {}, 'title': {}}},
                                    'filter': filter,
                                    'size': 5})
