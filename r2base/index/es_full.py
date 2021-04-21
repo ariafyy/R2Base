@@ -159,9 +159,16 @@ class EsIndex(EsBaseIndex):
         if type(value) is dict:
             threshold = value.get('threshold', None)
             query = value['value']
-            if mapping.type == FT.TEXT and 'aqe' in value:
-                aqe = value['aqe']
-                query = AqeClient.expand(aqe, query, mapping.lang)
+            if mapping.type == FT.TEXT:
+                # automatic query expansion
+                if 'aqe' in value:
+                    aqe = value['aqe']
+                    query = AqeClient.expand(aqe, query, mapping.lang)
+
+                # minimum_should_match
+                if "minimum_should_match" in value:
+                    query = {"query": query, "minimum_should_match": value['minimum_should_match']}
+
         else:
             query = value
             threshold = None
