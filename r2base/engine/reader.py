@@ -33,11 +33,11 @@ class Reader(EngineBase):
         res = requests.post(model_url, json=body)
         res = res.json()['result']
 
-        # filter out empty values
-        res = [a for a in res if not a.get('missing_warning') and a.get('prob', 0.0) >= threshold]
-
-        # add ranker score
+        # add ranker score (filter out empty values)
         for a_id, ans in enumerate(res):
+            if ans.get('missing_warning') or ans.get('prob', 0.0) < threshold:
+                continue
+
             ans['ranker_score'] = docs[a_id]['score']
             ans['combo_score'] = ans['ranker_score'] + ans.get('score')
             ans['_uid'] = docs[a_id]['_source']['_uid']
