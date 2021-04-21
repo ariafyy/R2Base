@@ -40,7 +40,7 @@ class Reader(EngineBase):
         for a_id, ans in enumerate(res):
             ans['ranker_score'] = docs[a_id]['score']
             ans['combo_score'] = ans['ranker_score'] + ans.get('score')
-            ans['rank_doc_id'] = a_id
+            ans['_uid'] = docs[a_id]['_source']['_uid']
 
         # rerank
         res = sorted(res, key=lambda x: x['combo_score'], reverse=True)
