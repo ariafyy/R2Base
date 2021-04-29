@@ -245,16 +245,19 @@ class EsIndex(EsBaseIndex):
                     continue
 
                 doc_id = h['_source'][FT.ID]
+                score = score * weight
                 if doc_id not in id2data:
                     id2data[doc_id] = self._hit2doc(h, score)
                 else:
-                    temp = self._hit2doc(h, score).get('highlight')
-                    if temp:
+                    temp = self._hit2doc(h, score)
+                    if 'highlight' in temp:
                         prev = id2data[doc_id].get('highlight', {})
                         prev.update(**temp)
                         id2data[doc_id]['highlight'] = prev
+                    if 'score' in temp:
+                        id2data[doc_id]['score'] = score + id2data[doc_id]['score']
 
-                id2score[doc_id] = weight * score + id2score.get(doc_id, 0.0)
+                id2score[doc_id] = score + id2score.get(doc_id, 0.0)
 
         idrank = [(doc_id, score) for doc_id, score in id2score.items()]
         idrank = sorted(idrank, key=lambda x: x[1], reverse=True)[0:top_k]
