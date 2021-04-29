@@ -156,8 +156,12 @@ class EsIndex(EsBaseIndex):
         return doc
 
     def _parse_match_clause(self, field: str, mapping, value):
+        query = value
+        args = {'threshold': None, 'weight': 1.0}
+
         if type(value) is dict:
-            threshold = value.get('threshold', None)
+            args['threshold'] = value.get('threshold', None)
+            args['weight'] = value.get('weight', 1.0)
             query = value['value']
             if mapping.type == FT.TEXT:
                 # automatic query expansion
@@ -170,11 +174,7 @@ class EsIndex(EsBaseIndex):
                     query = {'match': {field: {"query": query,
                                                "minimum_should_match": value['minimum_should_match']}}}
 
-        else:
-            query = value
-            threshold = None
-
-        return query, threshold
+        return query, args
 
     def _empty_query(self, json_filter, top_k, src_filter, from_=0):
 
@@ -206,12 +206,11 @@ class EsIndex(EsBaseIndex):
     def _query(self, match: dict, json_filter, top_k: int, src_filter, from_=0, highlight=None):
         es_qs = []
         keys = []
-        ths = []
+        arg_list = []
 
         for field, value in match.items():
             mapping = self.mappings[field]
-            value, threshold = self._parse_match_clause(field, mapping, value)
-            ths.append(threshold)
+            value, args = self._parse_match_clause(field, mapping, value)
 
             if mapping.type in FT.MATCH_TYPES:
                 es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value,
@@ -222,8 +221,11 @@ class EsIndex(EsBaseIndex):
 
                 es_query['_source'] = src_filter
                 keys.append(field)
+                arg_list.append(args)
                 es_qs.append({'index': self.index_id})
                 es_qs.append(es_query)
+            else:
+                self.logger.warn("Not compatiable {} appear in match clause".format(field))
 
         m_res = self.es.msearch(body=es_qs)
         id2score = {}
@@ -231,7 +233,9 @@ class EsIndex(EsBaseIndex):
 
         for k_id, key in enumerate(keys):
             mapping = self.mappings[key]
-            threshold = ths[k_id]
+            args = arg_list[k_id]
+            threshold = args['threshold']
+            weight = args['weight']
 
             res = m_res['responses'][k_id]
             for h in res['hits']['hits']:
@@ -250,7 +254,7 @@ class EsIndex(EsBaseIndex):
                         prev.update(**temp)
                         id2data[doc_id]['highlight'] = prev
 
-                id2score[doc_id] = score + id2score.get(doc_id, 0.0)
+                id2score[doc_id] = weight * score + id2score.get(doc_id, 0.0)
 
         idrank = [(doc_id, score) for doc_id, score in id2score.items()]
         idrank = sorted(idrank, key=lambda x: x[1], reverse=True)[0:top_k]
