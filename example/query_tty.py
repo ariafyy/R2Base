@@ -3,7 +3,7 @@ from r2base.engine.reader import Reader
 if __name__ == "__main__":
     ranker = Ranker()
     reader = Reader()
-    index = 'a659cf1429b44ae887eddb309fce2f84'
+    index = 'wiki-zh'
 
     while True:
         query = input("Type a query:\n")

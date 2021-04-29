@@ -33,22 +33,23 @@ class Reader(EngineBase):
         res = requests.post(model_url, json=body)
         res = res.json()['result']
 
-        # filter out empty values
-        res = [a for a in res if not a.get('missing_warning') and a.get('prob', 0.0) >= threshold]
-
-        # add ranker score
+        # add ranker score (filter out empty values)
+        new_res = []
         for a_id, ans in enumerate(res):
+            if ans.get('missing_warning') or ans.get('prob', 0.0) < threshold:
+                continue
             ans['ranker_score'] = docs[a_id]['score']
             ans['combo_score'] = ans['ranker_score'] + ans.get('score')
-            ans['rank_doc_id'] = a_id
+            ans['_uid'] = docs[a_id]['_source']['_uid']
+            new_res.append(ans)
 
         # rerank
-        res = sorted(res, key=lambda x: x['combo_score'], reverse=True)
+        new_res = sorted(new_res, key=lambda x: x['combo_score'], reverse=True)
 
         # merge same answer
         used_map = dict()
         merged_ans = []
-        for a_id, ans in enumerate(res):
+        for a_id, ans in enumerate(new_res):
             a_v = ans['value']
             if a_v not in used_map:
                 used_map[ans['value']] = len(merged_ans)

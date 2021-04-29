@@ -155,7 +155,7 @@ class EsIndex(EsBaseIndex):
             doc['highlight'] = hit["highlight"]
         return doc
 
-    def _parse_match_clause(self, mapping, value):
+    def _parse_match_clause(self, field: str, mapping, value):
         query = value
         args = {'threshold': None, 'weight': 1.0}
 
@@ -171,7 +171,8 @@ class EsIndex(EsBaseIndex):
 
                 # minimum_should_match
                 if "minimum_should_match" in value:
-                    query = {"query": query, "minimum_should_match": value['minimum_should_match']}
+                    query = {'match': {field: {"query": query,
+                                               "minimum_should_match": value['minimum_should_match']}}}
 
         return query, args
 
@@ -209,7 +210,7 @@ class EsIndex(EsBaseIndex):
 
         for field, value in match.items():
             mapping = self.mappings[field]
-            value, args = self._parse_match_clause(mapping, value)
+            value, args = self._parse_match_clause(field, mapping, value)
 
             if mapping.type in FT.MATCH_TYPES:
                 es_query = self._get_field_op(mapping.type).to_query_body(field, mapping, value,
