@@ -15,7 +15,7 @@ if __name__ == "__main__":
             filter = None
 
 
-        res = ranker.query(index, {'match': {'text': {'value': q, 'weight': 0.1},
+        res = ranker.query(index, {'match': {'text': {'value': q, 'weight': 0.1, 'required': True},
                                              'title': {'value': q, 'weight': 0.2}},
                                    'highlight': {'fields': {'text': {}, 'title': {}}},
                                    'filter': filter,

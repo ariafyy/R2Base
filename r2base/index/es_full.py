@@ -157,11 +157,13 @@ class EsIndex(EsBaseIndex):
 
     def _parse_match_clause(self, field: str, mapping, value):
         query = value
-        args = {'threshold': None, 'weight': 1.0}
+        args = {'threshold': None, 'weight': 1.0, 'required': False}
 
         if type(value) is dict:
             args['threshold'] = value.get('threshold', None)
             args['weight'] = value.get('weight', 1.0)
+            args['required'] = value.get('required', False)
+
             query = value['value']
             if mapping.type == FT.TEXT:
                 # automatic query expansion
@@ -225,19 +227,23 @@ class EsIndex(EsBaseIndex):
                 es_qs.append({'index': self.index_id})
                 es_qs.append(es_query)
             else:
-                self.logger.warn("Not compatiable {} appear in match clause".format(field))
+                self.logger.warn("No compatible {} appear in match clause".format(field))
 
         m_res = self.es.msearch(body=es_qs)
         id2score = {}
         id2data = {}
+        all_key_must = None
+        has_required = False
 
         for k_id, key in enumerate(keys):
             mapping = self.mappings[key]
             args = arg_list[k_id]
             threshold = args['threshold']
             weight = args['weight']
-
+            required = args['required']
             res = m_res['responses'][k_id]
+            key_must = set()
+
             for h in res['hits']['hits']:
                 score = h.get('_score', 0.0) if h['_score'] else 0.0
                 score = self._get_field_op(mapping.type).process_score(mapping, score)
@@ -246,6 +252,11 @@ class EsIndex(EsBaseIndex):
 
                 doc_id = h['_source'][FT.ID]
                 score = score * weight
+
+                if required:
+                    has_required = True
+                    key_must.add(doc_id)
+
                 if doc_id not in id2data:
                     id2data[doc_id] = self._hit2doc(h, score)
                 else:
@@ -254,15 +265,24 @@ class EsIndex(EsBaseIndex):
                         prev = id2data[doc_id].get('highlight', {})
                         prev.update(**temp)
                         id2data[doc_id]['highlight'] = prev
-                    if 'score' in temp:
-                        id2data[doc_id]['score'] = score + id2data[doc_id]['score']
 
                 id2score[doc_id] = score + id2score.get(doc_id, 0.0)
+
+            if required and len(key_must) > 0:
+                if all_key_must is None:
+                    all_key_must = key_must
+                else:
+                    all_key_must = all_key_must.intersection(key_must)
+
+        if has_required and all_key_must is not None:
+            id2score = {k: v for k, v in id2score.items() if k in all_key_must}
+            id2data = {k: v for k, v in id2data.items() if k in all_key_must}
 
         idrank = [(doc_id, score) for doc_id, score in id2score.items()]
         idrank = sorted(idrank, key=lambda x: x[1], reverse=True)[0:top_k]
         docs = []
         for doc_id, score in idrank:
+            id2data[doc_id]['score'] = score
             docs.append(id2data[doc_id])
 
         return docs
