@@ -11,6 +11,9 @@
       }
     },
     "analyzer": {
+      "keyword_analyzer": {
+        "tokenizer": "keyword"
+      },
       "cutter_analyzer": {
         "tokenizer": "cutter_tokenizer"
       },
