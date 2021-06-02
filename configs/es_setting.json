@@ -8,11 +8,18 @@
       "cutter_tokenizer": {
         "type": "pattern",
         "pattern": "/"
+      },
+      "char_tokenizer": {
+        "type": "pattern",
+        "pattern": ""
       }
     },
     "analyzer": {
       "keyword_analyzer": {
         "tokenizer": "keyword"
+      },
+      "char_analyzer": {
+        "tokenizer": "char_tokenizer"
       },
       "cutter_analyzer": {
         "tokenizer": "cutter_tokenizer"
