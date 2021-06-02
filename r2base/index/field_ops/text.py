@@ -32,6 +32,10 @@ class TextField(FieldOpBase):
 
         if mapping.analyzer:
             result['analyzer'] = mapping.analyzer
+            if mapping.search_analyzer:
+                result['search_analyzer'] = mapping.search_analyzer
+            else:
+                result['search_analyzer'] = mapping.analyzer
 
         return result
 

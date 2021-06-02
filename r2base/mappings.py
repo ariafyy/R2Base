@@ -62,6 +62,7 @@ class TextMapping(BasicMapping):
     processor: str = None
     q_processor: str = None
     analyzer: str = None
+    search_analyzer: str = None
 
     def __init__(self, **data):
         # initialize default values here for different index types
